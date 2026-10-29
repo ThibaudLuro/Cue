@@ -22,11 +22,12 @@ export function MoodChip({ children }: { children: ReactNode }) {
 }
 
 const logoSizes = {
-  md: { box: 'size-7 rounded-lg', bar: 'w-[3px] rounded-xs', heights: ['h-2', 'h-3.5', 'h-2.5'] },
+  lg: { box: 'size-7 rounded-lg', bar: 'w-[3px] rounded-xs', heights: ['h-2', 'h-3.5', 'h-2.5'] },
+  md: { box: 'size-[26px] rounded-[7px]', bar: 'w-[3px] rounded-xs', heights: ['h-[7px]', 'h-[13px]', 'h-[9px]'] },
   sm: { box: 'size-6 rounded-[7px]', bar: 'w-0.5 rounded-[1px]', heights: ['h-[7px]', 'h-3', 'h-[9px]'] },
 }
 
-export function Logo({ size = 'md' }: { size?: keyof typeof logoSizes }) {
+export function Logo({ size = 'lg' }: { size?: keyof typeof logoSizes }) {
   const { box, bar, heights } = logoSizes[size]
   return (
     <span aria-hidden="true" className={`flex items-center justify-center gap-0.5 bg-accent ${box}`}>

@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { Logo } from '../components/ui'
 
 const links = [
@@ -35,12 +36,12 @@ export function Header() {
           >
             Se connecter
           </a>
-          <a
-            href="#essayer"
+          <Link
+            to="/app"
             className="flex h-10 items-center rounded-lg bg-fg px-4 text-sm font-medium text-canvas transition hover:bg-data active:scale-[0.98]"
           >
             Essayer gratuitement
-          </a>
+          </Link>
         </div>
       </nav>
     </header>

@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { UsbIcon } from '../components/icons'
 import { Dot } from '../components/ui'
 
@@ -29,12 +30,12 @@ export function Hero() {
             <span className="text-[15px] font-medium">Branchez votre clé USB</span>
             <span className="text-[13px] text-muted">Cue la lit sur place, vos morceaux ne quittent pas la clé.</span>
           </div>
-          <button
-            type="button"
-            className="h-11 cursor-pointer rounded-lg bg-gradient-brand px-5.5 text-[15px] font-semibold text-canvas transition hover:opacity-90 active:scale-[0.98]"
+          <Link
+            to="/app"
+            className="flex h-11 items-center rounded-lg bg-gradient-brand px-5.5 text-[15px] font-semibold text-canvas transition hover:opacity-90 active:scale-[0.98]"
           >
             Connecter ma clé
-          </button>
+          </Link>
         </div>
         <p className="mt-3 text-xs text-subtle tabular-nums">MP3 · WAV · FLAC · AIFF · Chrome, Edge et Opera</p>
       </div>

@@ -32,12 +32,12 @@ export function levelBars(count: number, energy: number, seed: number): { height
   })
 }
 
-export function partsWave(parts: TrackPart[], count: number): Bar[] {
+export function partsWave(parts: Pick<TrackPart, 'start' | 'end' | 'energy'>[], count: number, seed = 3.1): Bar[] {
   return Array.from({ length: count }, (_, i) => {
     const x = i / count
     const part = parts.find((p) => x >= p.start && x < p.end) ?? parts[parts.length - 1]
     return {
-      height: clampHeight(part.energy * (0.6 + 0.4 * noise(i, 3.1))),
+      height: clampHeight(part.energy * (0.6 + 0.4 * noise(i, seed))),
       level: energyLevel(part.energy),
     }
   })

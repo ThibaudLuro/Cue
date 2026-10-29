@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { Glow } from '../components/Glow'
 import { tint } from '../lib/tint'
 
@@ -20,12 +21,12 @@ export function CallToAction() {
             Branchez-la, Cue s’occupe du rangement et des repères. Sans carte bancaire.
           </p>
           <div className="flex flex-wrap gap-3">
-            <a
-              href="#essayer"
+            <Link
+              to="/app"
               className="flex h-12 items-center rounded-lg bg-gradient-brand px-6 text-[15px] font-semibold text-canvas transition hover:opacity-90 active:scale-[0.98]"
             >
               Connecter ma clé
-            </a>
+            </Link>
             <a
               href="#tarifs"
               className="flex h-12 items-center rounded-lg border border-idle bg-canvas/40 px-6 text-[15px] text-fg transition hover:border-subtle active:scale-[0.98]"
