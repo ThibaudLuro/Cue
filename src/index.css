@@ -1,0 +1,190 @@
+@import 'tailwindcss';
+
+/* Tokens from the "Fondations" board, plus the yellow → green gradient of the "Landing — test couleur" board. */
+@theme {
+  --font-sans: 'Geist', system-ui, sans-serif;
+
+  /* The design inherits a 1.5 line-height everywhere; headings set their own. */
+  --text-xs--line-height: 1.5;
+  --text-sm--line-height: 1.5;
+  --text-base--line-height: 1.5;
+  --text-lg--line-height: 1.5;
+  --text-xl--line-height: 1.5;
+
+  --color-canvas: #0a0a0b;
+  --color-surface: #111113;
+  --color-card: #0f0f11;
+
+  --color-line: #1e1e22;
+  --color-line-strong: #26262b;
+  --color-control: #2e2e34;
+  --color-row: #1a1a1e;
+
+  --color-accent: #c6ff3d;
+  --color-grad-from: #fff45c;
+  --color-grad-via: #e6ff3d;
+  --color-grad-to: #b8ff2e;
+
+  --color-fg: #f4f4f2;
+  --color-data: #d4d4d8;
+  --color-muted: #a1a1a7;
+  --color-subtle: #8a8a91;
+  --color-idle: #3a3a41;
+
+  --color-wave-lo: #4a4a52;
+
+  --ease-fluid: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-rise: rise 0.9s var(--ease-fluid) both;
+  --animate-glow-in: glow-in 1.6s ease-out both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      translate: 0 16px;
+    }
+  }
+
+  @keyframes glow-in {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
+@utility bg-gradient-brand {
+  background-image: linear-gradient(90deg, var(--color-grad-from), var(--color-grad-via), var(--color-grad-to));
+}
+
+@utility text-gradient-brand {
+  background-image: linear-gradient(90deg, var(--color-grad-from), var(--color-grad-via), var(--color-grad-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 1px gradient frame: put it on a wrapper with p-px around a solid panel. */
+@utility bg-gradient-frame {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-grad-from) 35%, transparent),
+    var(--color-line-strong) 35%,
+    var(--color-line-strong) 70%,
+    color-mix(in srgb, var(--color-grad-to) 25%, transparent)
+  );
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+      interpolate-size: allow-keywords;
+    }
+
+    /* FAQ answers slide open where the browser can animate to height: auto. */
+    details::details-content {
+      block-size: 0;
+      overflow: hidden;
+      transition:
+        block-size 0.35s var(--ease-fluid),
+        content-visibility 0.35s allow-discrete;
+    }
+
+    details[open]::details-content {
+      block-size: auto;
+    }
+  }
+}
+
+/*
+ * Scroll reveal: useScrollReveal() adds data-revealed the first time an element scrolls into view.
+ * - data-reveal: the element rises and fades in (optional --reveal-delay).
+ * - data-reveal-group: its children do the same, one after the other.
+ * - data-wave: its bars grow one after the other once an ancestor is revealed (--i = bar index).
+ * - data-cue-marker: hot cue markers drop in after the wave (--i = cue index).
+ */
+@layer components {
+  @media (prefers-reduced-motion: no-preference) {
+    [data-reveal],
+    [data-reveal-group] > * {
+      opacity: 0;
+      translate: 0 24px;
+      transition:
+        opacity 0.8s var(--ease-fluid),
+        translate 0.8s var(--ease-fluid);
+    }
+
+    [data-reveal] {
+      transition-delay: var(--reveal-delay, 0ms);
+    }
+
+    [data-reveal][data-revealed],
+    [data-reveal-group][data-revealed] > * {
+      opacity: 1;
+      translate: none;
+    }
+
+    [data-reveal-group] > :nth-child(2) {
+      transition-delay: 70ms;
+    }
+    [data-reveal-group] > :nth-child(3) {
+      transition-delay: 140ms;
+    }
+    [data-reveal-group] > :nth-child(4) {
+      transition-delay: 210ms;
+    }
+    [data-reveal-group] > :nth-child(5) {
+      transition-delay: 280ms;
+    }
+    [data-reveal-group] > :nth-child(6) {
+      transition-delay: 350ms;
+    }
+    [data-reveal-group] > :nth-child(7) {
+      transition-delay: 420ms;
+    }
+    [data-reveal-group] > :nth-child(n + 8) {
+      transition-delay: 490ms;
+    }
+
+    [data-wave] > * {
+      scale: 1 0.08;
+      transition: scale 0.6s var(--ease-fluid);
+      transition-delay: calc(var(--i) * 4ms + 200ms);
+    }
+
+    [data-revealed] [data-wave] > * {
+      scale: none;
+    }
+
+    [data-cue-marker] {
+      opacity: 0;
+      translate: 0 -6px;
+      transition:
+        opacity 0.4s var(--ease-fluid),
+        translate 0.4s var(--ease-fluid);
+      transition-delay: calc(var(--i) * 90ms + 700ms);
+    }
+
+    [data-revealed] [data-cue-marker] {
+      opacity: 1;
+      translate: none;
+    }
+  }
+}
