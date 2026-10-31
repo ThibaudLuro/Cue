@@ -38,7 +38,6 @@ export function ToolHeader({ prep }: { prep: KeyPrep }) {
         </Link>
         <span aria-hidden="true" className="h-5 w-px bg-line-strong" />
         <div className="flex items-center gap-2.5 text-[13px]">
-          <span className="font-medium">SET_SAMEDI</span>
           <span
             title={prep.analysis.error ?? undefined}
             className={`flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs tabular-nums ${busy ? 'border-accent text-fg' : 'border-line-strong text-data'}`}
