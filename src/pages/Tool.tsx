@@ -28,7 +28,7 @@ function Workspace({ usbKey }: { usbKey: UsbKey }) {
 
   // From md up, the page fits the window: the sidebar and the tracks scroll on their own.
   return (
-    <div className="flex min-h-screen flex-col bg-canvas text-sm leading-[1.45] text-fg md:h-screen">
+    <div className="relative flex min-h-screen flex-col bg-canvas text-sm leading-[1.45] text-fg md:h-screen md:overflow-hidden">
       <ToolHeader prep={prep} />
       <div className="flex flex-1 flex-col md:min-h-0 md:flex-row">
         <Sidebar prep={prep} />

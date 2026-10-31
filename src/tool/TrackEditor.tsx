@@ -1,6 +1,6 @@
 import { useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
 import { PauseIcon, PlayIcon, RefreshIcon } from '../components/icons'
-import { Tag } from '../components/ui'
+import { Spinner, Tag } from '../components/ui'
 import type { Bar, EnergyLevel } from '../lib/waveform'
 import { CuePads } from './CuePads'
 import { resetLabel } from './cueSource'
@@ -24,7 +24,7 @@ export function TrackEditor({ prep }: { prep: KeyPrep }) {
   return (
     <section
       aria-label="Morceau sélectionné"
-      className="flex shrink-0 flex-col overflow-x-hidden overflow-y-auto rounded-xl border border-line bg-surface md:max-h-[58vh] xl:flex-row"
+      className="relative flex shrink-0 flex-col overflow-x-hidden overflow-y-auto rounded-xl border border-line bg-surface md:max-h-[58vh] xl:flex-row"
     >
       <div className="min-w-0 flex-1 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -222,6 +222,21 @@ function Waveform({ prep }: { prep: KeyPrep }) {
             {section.label}
           </span>
         ))}
+        {/* Until this track is analysed, say why its parts and cues are missing. */}
+        {sections.length === 0 && track.analysis !== 'done' && (
+          <span className="flex items-center gap-1.5 pt-2 pl-1.5 text-[11px] text-muted">
+            {track.analysis === 'failed' ? (
+              'Analyse impossible : fichier illisible'
+            ) : (
+              <>
+                <Spinner className="size-3 text-accent" />
+                {track.analysis === 'running'
+                  ? 'Analyse de ce morceau : BPM, tonalité, parties et hot cues arrivent…'
+                  : 'En attente d’analyse : les parties et les hot cues apparaîtront ensuite'}
+              </>
+            )}
+          </span>
+        )}
       </div>
     </>
   )

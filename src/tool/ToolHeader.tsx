@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { DownloadIcon } from '../components/icons'
-import { Dot, Logo } from '../components/ui'
+import { Dot, Logo, Spinner } from '../components/ui'
+import { AnalysisBar } from './AnalysisBar'
 import { plural } from './model'
 import type { KeyPrep } from './useKeyPrep'
 
@@ -26,6 +27,7 @@ function saveLabel(prep: KeyPrep) {
 
 export function ToolHeader({ prep }: { prep: KeyPrep }) {
   const saving = prep.status === 'saving'
+  const busy = prep.key.scanning || prep.analysis.running || Boolean(prep.analysis.download)
 
   return (
     <>
@@ -39,9 +41,9 @@ export function ToolHeader({ prep }: { prep: KeyPrep }) {
           <span className="font-medium">SET_SAMEDI</span>
           <span
             title={prep.analysis.error ?? undefined}
-            className="flex items-center gap-1.5 rounded-full border border-line-strong px-2.5 py-[3px] text-xs text-data tabular-nums"
+            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs tabular-nums ${busy ? 'border-accent text-fg' : 'border-line-strong text-data'}`}
           >
-            <Dot />
+            {busy ? <Spinner className="size-3 text-accent" /> : <Dot />}
             {statusLabel(prep)}
           </span>
         </div>
@@ -79,6 +81,7 @@ export function ToolHeader({ prep }: { prep: KeyPrep }) {
         </button>
       </header>
 
+      <AnalysisBar prep={prep} />
       {prep.analysis.error && (
         <p role="alert" className="border-b border-line bg-surface px-5 py-2.5 text-[13px] text-accent">
           {prep.analysis.error}

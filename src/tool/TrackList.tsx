@@ -1,5 +1,6 @@
 import { useRef, type KeyboardEvent } from 'react'
 import { SearchIcon } from '../components/icons'
+import { Spinner } from '../components/ui'
 import { folderSegments, formatTime, MOODS, plural } from './model'
 import type { KeyPrep, KeyTrack } from './useKeyPrep'
 
@@ -63,7 +64,7 @@ export function TrackList({ prep }: { prep: KeyPrep }) {
       <div
         ref={scroller}
         onKeyDown={moveSelection}
-        className="overflow-auto rounded-xl border border-line bg-surface md:min-h-0 md:flex-1"
+        className="relative overflow-auto rounded-xl border border-line bg-surface md:min-h-0 md:flex-1"
       >
         <div className="min-w-[900px]">
           <div className="sticky top-0 z-10 grid grid-cols-[44px_minmax(0,1fr)] items-center border-b border-line bg-surface">
@@ -136,10 +137,11 @@ function SelectionBar({ prep }: { prep: KeyPrep }) {
 }
 
 function trackState(track: KeyTrack, saved: boolean) {
+  // The analysis first: a track being analysed says so even if its mood is already known.
+  if (track.analysis === 'running') return { label: 'Analyse…', text: 'text-fg', dot: null }
+  if (track.analysis === 'failed') return { label: 'Illisible', text: 'text-accent', dot: 'bg-accent' }
   if (!track.mood) {
-    if (track.analysis === 'running') return { label: 'Analyse…', text: 'text-data', dot: 'bg-data motion-safe:animate-pulse' }
-    if (track.analysis === 'pending') return { label: 'À analyser', text: 'text-subtle', dot: 'bg-idle' }
-    if (track.analysis === 'failed') return { label: 'Illisible', text: 'text-accent', dot: 'bg-accent' }
+    if (track.analysis === 'pending') return { label: 'En attente', text: 'text-subtle', dot: 'bg-idle' }
     return { label: 'À confirmer', text: 'text-accent', dot: 'bg-fg' }
   }
   return saved
@@ -205,7 +207,11 @@ function TrackRow({ prep, track, index }: { prep: KeyPrep; track: KeyTrack; inde
           ))}
         </span>
         <span className={`flex items-center gap-1.5 text-xs ${state.text}`}>
-          <span aria-hidden="true" className={`size-1.5 rounded-full ${state.dot}`} />
+          {state.dot ? (
+            <span aria-hidden="true" className={`size-1.5 rounded-full ${state.dot}`} />
+          ) : (
+            <Spinner className="size-3 text-accent" />
+          )}
           {state.label}
         </span>
         <span className="text-xs text-subtle tabular-nums">{track.duration ? formatTime(track.duration) : '—'}</span>

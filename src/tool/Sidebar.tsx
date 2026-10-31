@@ -18,7 +18,7 @@ export function Sidebar({ prep }: { prep: KeyPrep }) {
       aria-label="Clé et dossiers"
       className="flex w-full flex-col border-b border-line bg-canvas/80 md:w-[260px] md:shrink-0 md:border-r md:border-b-0"
     >
-      <div className="flex flex-col gap-[22px] p-4 md:min-h-0 md:flex-1 md:overflow-y-auto">
+      <div className="relative flex flex-col gap-[22px] p-4 md:min-h-0 md:flex-1 md:overflow-y-auto">
         <KeyCard prep={prep} />
 
         <div className="flex flex-col gap-2">

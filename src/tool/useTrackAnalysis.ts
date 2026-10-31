@@ -162,6 +162,8 @@ export function useTrackAnalysis(files: KeyFile[]) {
       running: current !== null || (!vectors && !error && files.length > 0),
       // Only while the model is actually being fetched.
       download: download && download.loaded < download.total ? download : null,
+      // Path of the track being analysed right now.
+      current,
       error,
     },
     correct(paths: string[], mood: Mood) {

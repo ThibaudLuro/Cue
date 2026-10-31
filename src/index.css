@@ -40,11 +40,22 @@
   --animate-rise: rise 0.9s var(--ease-fluid) both;
   --animate-glow-in: fade-in 1.6s ease-out both;
   --animate-fade-in: fade-in 0.35s ease-out both;
+  --animate-indeterminate: indeterminate 1.4s ease-in-out infinite;
 
   @keyframes rise {
     from {
       opacity: 0;
       translate: 0 16px;
+    }
+  }
+
+  /* A bar sliding across its track: busy, progress unknown. */
+  @keyframes indeterminate {
+    from {
+      translate: -100% 0;
+    }
+    to {
+      translate: 250% 0;
     }
   }
 
