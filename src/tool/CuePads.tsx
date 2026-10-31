@@ -1,5 +1,6 @@
-import { cueLetter, formatTime, PAD_COUNT } from './model'
+import { barBeat, cueLetter, formatCueTime, formatTime, PAD_COUNT } from './model'
 import { Overline } from './Overline'
+import { cueOrigin } from './cueSource'
 import type { KeyPrep } from './useKeyPrep'
 
 const smallButton =
@@ -9,14 +10,16 @@ export function CuePads({ prep }: { prep: KeyPrep }) {
   const { track } = prep
   const cueCount = track.cues.filter(Boolean).length
   const active = track.cues[prep.activeCue]
+  const grid = active ? barBeat(track, active.position) : null
+  const listened = prep.player.playing || prep.player.time > 0
 
   return (
     <>
       <div className="mt-6 flex flex-wrap items-baseline justify-between gap-3">
         <Overline>
-          Hot cues · {cueCount}/{PAD_COUNT}
+          Hot cues · {cueCount}/{PAD_COUNT} · {cueOrigin(track)}
         </Overline>
-        <span className="text-xs text-subtle">Cliquez un pad pour le modifier, un pad libre pour en ajouter un</span>
+        <span className="text-xs text-subtle">Pad libre : pose un cue à la lecture · double-clic sur la forme d’onde · glissez les repères pour les déplacer</span>
       </div>
 
       <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-2">
@@ -80,12 +83,32 @@ export function CuePads({ prep }: { prep: KeyPrep }) {
               className="h-[34px] w-[140px] rounded-md border border-control bg-surface px-2.5 text-[13px] text-fg"
             />
           </label>
-          <span className="px-2 text-[13px] text-data tabular-nums">{formatTime(active.position * track.duration)}</span>
-          <button type="button" onClick={() => prep.nudgeCue(-1)} className={smallButton}>
-            − 1 temps
-          </button>
-          <button type="button" onClick={() => prep.nudgeCue(1)} className={smallButton}>
-            + 1 temps
+          <span className="px-2 text-[13px] text-data tabular-nums">
+            {formatCueTime(active.position * track.duration)}
+            {grid && <span className="text-subtle"> · mesure {grid.bar}.{grid.beat}</span>}
+          </span>
+          <div role="group" aria-label="Déplacer le hot cue" className="flex gap-1">
+            <button type="button" onClick={() => prep.nudgeCue(-4)} className={smallButton} title="Reculer d’une mesure">
+              − 1 mes.
+            </button>
+            <button type="button" onClick={() => prep.nudgeCue(-1)} className={smallButton} title="Reculer d’un temps">
+              − 1 tps
+            </button>
+            <button type="button" onClick={() => prep.nudgeCue(1)} className={smallButton} title="Avancer d’un temps">
+              + 1 tps
+            </button>
+            <button type="button" onClick={() => prep.nudgeCue(4)} className={smallButton} title="Avancer d’une mesure">
+              + 1 mes.
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={prep.cueToPlayhead}
+            disabled={!listened}
+            title={listened ? 'Placer le cue là où en est la lecture' : 'Lancez la lecture pour placer le cue à la volée'}
+            className={`${smallButton} disabled:cursor-not-allowed disabled:opacity-50`}
+          >
+            Ici
           </button>
           <div className="flex-1" />
           <button

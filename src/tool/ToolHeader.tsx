@@ -1,19 +1,26 @@
 import { Link } from 'react-router'
 import { DownloadIcon } from '../components/icons'
 import { Dot, Logo } from '../components/ui'
-import { KEY_NAME, plural } from './model'
+import { plural } from './model'
 import type { KeyPrep } from './useKeyPrep'
 
 function statusLabel(prep: KeyPrep) {
-  if (prep.rereading) return 'Lecture de la clé'
+  if (prep.key.phase === 'unplugged') return 'Clé débranchée'
+  if (prep.key.scanning) return 'Lecture de la clé'
   if (prep.status === 'saving') return 'Écriture en cours'
   if (prep.status === 'saved') return 'À jour'
-  return 'Analyse terminée'
+  const { analysis } = prep
+  if (analysis.download) {
+    const percent = Math.round((analysis.download.loaded / analysis.download.total) * 100)
+    return `Préparation de l’analyse ${percent} %`
+  }
+  if (analysis.running) return `Analyse ${analysis.done}/${analysis.total}`
+  return analysis.error ? 'Analyse partielle' : 'Analyse terminée'
 }
 
 function saveLabel(prep: KeyPrep) {
   if (prep.status === 'saving') return `Enregistrement… ${prep.progress} %`
-  if (prep.status === 'saved') return 'Clé à jour'
+  if (prep.status === 'saved') return 'Export enregistré'
   return 'Enregistrer sur la clé'
 }
 
@@ -30,7 +37,10 @@ export function ToolHeader({ prep }: { prep: KeyPrep }) {
         <span aria-hidden="true" className="h-5 w-px bg-line-strong" />
         <div className="flex items-center gap-2.5 text-[13px]">
           <span className="font-medium">SET_SAMEDI</span>
-          <span className="flex items-center gap-1.5 rounded-full border border-line-strong px-2.5 py-[3px] text-xs text-data">
+          <span
+            title={prep.analysis.error ?? undefined}
+            className="flex items-center gap-1.5 rounded-full border border-line-strong px-2.5 py-[3px] text-xs text-data tabular-nums"
+          >
             <Dot />
             {statusLabel(prep)}
           </span>
@@ -46,7 +56,8 @@ export function ToolHeader({ prep }: { prep: KeyPrep }) {
         <button
           type="button"
           onClick={prep.save}
-          className={`relative flex h-10 min-w-[200px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg px-[18px] text-sm font-semibold text-canvas transition active:scale-[0.98] ${prep.status === 'saved' ? 'bg-data' : 'bg-accent hover:opacity-90'}`}
+          disabled={prep.key.phase !== 'ready'}
+          className={`relative flex h-10 min-w-[200px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg px-[18px] text-sm font-semibold text-canvas transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${prep.status === 'saved' ? 'bg-data' : 'bg-accent hover:opacity-90'}`}
         >
           {/* Lighter veil over the part still to write: the button fills up from left to right. */}
           {saving && (
@@ -68,6 +79,16 @@ export function ToolHeader({ prep }: { prep: KeyPrep }) {
         </button>
       </header>
 
+      {prep.analysis.error && (
+        <p role="alert" className="border-b border-line bg-surface px-5 py-2.5 text-[13px] text-accent">
+          {prep.analysis.error}
+        </p>
+      )}
+      {prep.saveError && (
+        <p role="alert" className="border-b border-line bg-surface px-5 py-2.5 text-[13px] text-accent">
+          {prep.saveError}
+        </p>
+      )}
       <div role="status">
         {prep.toast && (
           <div className="flex flex-wrap items-center gap-3 border-b border-line bg-surface px-5 py-2.5 text-[13px] motion-safe:animate-rise">
@@ -78,7 +99,9 @@ export function ToolHeader({ prep }: { prep: KeyPrep }) {
               ✓
             </span>
             <span className="flex-1">
-              Clé enregistrée : dossiers rangés et hot cues écrits sur {KEY_NAME}. Vous pouvez la débrancher.
+              <span className="font-medium">CUE/rekordbox.xml</span> enregistré sur {prep.key.name}. Dans rekordbox :
+              Préférences › Avancé › Base de données › Disposition rekordbox xml, choisissez ce fichier, puis importez
+              la playlist « Cue » depuis « rekordbox xml » et exportez-la vers la clé pour vos CDJ.
             </span>
             <button
               type="button"

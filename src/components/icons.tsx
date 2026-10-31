@@ -73,3 +73,11 @@ export function PlayIcon(props: IconProps) {
     </Icon>
   )
 }
+
+export function PauseIcon(props: IconProps) {
+  return (
+    <Icon fill="currentColor" stroke="none" {...props}>
+      <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
+    </Icon>
+  )
+}
