@@ -1,8 +1,8 @@
 // Tiny IndexedDB key-value store: everything Cue keeps between visits lives here.
 const DB = 'cue'
-const VERSION = 5
-export type StoreName = 'keys' | 'analyses' | 'corrections' | 'embeddings' | 'names' | 'waves' | 'cues'
-const STORES: StoreName[] = ['keys', 'analyses', 'corrections', 'embeddings', 'names', 'waves', 'cues']
+const VERSION = 6
+export type StoreName = 'keys' | 'analyses' | 'corrections' | 'embeddings' | 'names' | 'waves' | 'cues' | 'durations'
+const STORES: StoreName[] = ['keys', 'analyses', 'corrections', 'embeddings', 'names', 'waves', 'cues', 'durations']
 
 function openDb() {
   return new Promise<IDBDatabase>((resolve, reject) => {

@@ -65,7 +65,7 @@ export async function scanKey(root: FileSystemDirectoryHandle) {
   }
 
   await walk(root, '')
-  return files.sort((a, b) => a.path.localeCompare(b.path, 'fr'))
+  return files.sort((a, b) => a.path.localeCompare(b.path, 'en'))
 }
 
 // Reading the first entry fails once the drive is gone.

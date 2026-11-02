@@ -10,6 +10,7 @@ import {
   requestPermission,
   saveLastKey,
   scanKey,
+  fileKey,
   type KeyFile,
 } from './usbKey'
 
@@ -37,6 +38,8 @@ export function useUsbKey() {
   const measured = useRef(new Set<string>())
 
   const read = useCallback(async (root: FileSystemDirectoryHandle) => {
+    // Asks the browser not to clear what Cue keeps (analyses, waveforms, cues) when space runs low.
+    navigator.storage?.persist?.().catch(() => {})
     const id = ++scanId.current
     setScanning(true)
     setError(null)
@@ -49,7 +52,7 @@ export function useUsbKey() {
     } catch {
       if (id !== scanId.current) return
       setPhase(wasRead.current ? 'unplugged' : 'idle')
-      setError('Impossible de lire la clé. Vérifiez qu’elle est bien branchée.')
+      setError('Can’t read the stick. Check that it is plugged in.')
     } finally {
       if (id === scanId.current) setScanning(false)
     }
@@ -96,13 +99,26 @@ export function useUsbKey() {
     if (!files) return
     let cancelled = false
     ;(async () => {
+      // Read once per file content, then kept: an already seen key does not get re-measured.
+      const saved = await idbGetAll<number>('durations')
+      if (cancelled) return
+      const known: Record<string, number> = {}
+      for (const file of files) {
+        const seconds = saved[fileKey(file)]
+        if (seconds === undefined) continue
+        known[file.path] = seconds
+        measured.current.add(file.path)
+      }
+      setDurations((current) => ({ ...current, ...known }))
+
       for (const file of files) {
         if (cancelled) return
         if (measured.current.has(file.path)) continue
         const seconds = await readDuration(file.handle).catch(() => 0)
         if (cancelled) return
         measured.current.add(file.path)
-        setDurations((known) => ({ ...known, [file.path]: seconds }))
+        idbSet('durations', fileKey(file), seconds)
+        setDurations((current) => ({ ...current, [file.path]: seconds }))
       }
     })()
     return () => {
@@ -123,14 +139,14 @@ export function useUsbKey() {
     } catch (reason) {
       // The DJ closed the picker: nothing to report.
       if (reason instanceof DOMException && reason.name === 'AbortError') return
-      setError('Le navigateur a refusé l’accès à ce dossier. Choisissez la racine de votre clé USB.')
+      setError('The browser refused access to this folder. Choose the root of your USB stick.')
     }
   }
 
   async function reconnect() {
     if (!handle) return connect()
     if (await requestPermission(handle)) read(handle)
-    else setError('Accès refusé. Autorisez Cue à lire la clé pour continuer.')
+    else setError('Access denied. Allow Cue to read the stick to continue.')
   }
 
   const name = handle ? keyName(handle) : ''
@@ -145,7 +161,7 @@ export function useUsbKey() {
     error,
     // Where the key is on this computer, for rekordbox: worked out from the key itself when
     // possible (always better than a choice saved for an earlier plug-in), else the DJ's pick.
-    location: guessLocation(name) || locations[name] || '',
+    location: guessLocation(handle?.name ?? '') || locations[name] || '',
     setLocation(value: string) {
       setLocations((all) => ({ ...all, [name]: value }))
       idbSet('keys', `location:${name}`, value)
@@ -157,7 +173,7 @@ export function useUsbKey() {
     },
     // path: folders then file name, from the root of the key. Folders are created as needed.
     async write(path: string[], content: string) {
-      if (!handle) throw new Error('Aucune clé')
+      if (!handle) throw new Error('No stick')
       let folder = handle
       for (const segment of path.slice(0, -1)) folder = await folder.getDirectoryHandle(segment, { create: true })
       const file = await folder.getFileHandle(path[path.length - 1], { create: true })
@@ -168,15 +184,17 @@ export function useUsbKey() {
   }
 }
 
-// Chrome names a drive root after its letter ("E:\"): keep it readable.
+// Chrome may name a drive root after its letter ("E:\"): keep it readable.
 function keyName(handle: FileSystemDirectoryHandle) {
-  return handle.name.replace(/[\\/]+$/, '') || 'Clé USB'
+  return handle.name.replace(/[\\/]+$/, '') || 'USB stick'
 }
 
-// A drive letter is the location on Windows; macOS mounts keys under /Volumes by name.
-// Otherwise the DJ has to say.
-function guessLocation(name: string) {
-  if (/^[A-Za-z]:$/.test(name)) return `${name}/`
-  if (/Mac/.test(navigator.userAgent)) return `/Volumes/${name}/`
+// The location, when the key's own name gives it away. On Windows the browser may call a drive
+// root "E:\" or, like the Explorer, "CUE_USB (E:)": either way the letter is in it. macOS
+// mounts keys under /Volumes by name. Otherwise it cannot be known from the page.
+function guessLocation(rawName: string) {
+  const letter = /(?:^|\()([A-Za-z]):[\\/]?\)?$/.exec(rawName.trim())?.[1]
+  if (letter) return `${letter.toUpperCase()}:/`
+  if (/Mac/.test(navigator.userAgent) && rawName) return `/Volumes/${rawName}/`
   return ''
 }

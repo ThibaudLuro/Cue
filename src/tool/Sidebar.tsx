@@ -6,8 +6,8 @@ import { Overline } from './Overline'
 import type { KeyPrep } from './useKeyPrep'
 
 const groupings: { value: Grouping; label: string }[] = [
-  { value: 'bpm', label: 'BPM › Ambiance' },
-  { value: 'mood', label: 'Ambiance › BPM' },
+  { value: 'bpm', label: 'BPM › Energy' },
+  { value: 'mood', label: 'Energy › BPM' },
 ]
 
 export function Sidebar({ prep }: { prep: KeyPrep }) {
@@ -15,14 +15,14 @@ export function Sidebar({ prep }: { prep: KeyPrep }) {
 
   return (
     <aside
-      aria-label="Clé et dossiers"
+      aria-label="USB stick and folders"
       className="flex w-full flex-col border-b border-line bg-canvas/80 md:w-[260px] md:shrink-0 md:border-r md:border-b-0"
     >
       <div className="relative flex flex-col gap-[22px] p-4 md:min-h-0 md:flex-1 md:overflow-y-auto">
         <KeyCard prep={prep} />
 
         <div className="flex flex-col gap-2">
-          <Overline id="grouping-label">Rangement</Overline>
+          <Overline id="grouping-label">Sort by</Overline>
           <div
             role="group"
             aria-labelledby="grouping-label"
@@ -45,8 +45,8 @@ export function Sidebar({ prep }: { prep: KeyPrep }) {
           </div>
         </div>
 
-        <nav aria-label="Dossiers" className="flex flex-1 flex-col gap-0.5">
-          <Overline className="mb-1.5">Dossiers</Overline>
+        <nav aria-label="Folders" className="flex flex-1 flex-col gap-0.5">
+          <Overline className="mb-1.5">Folders</Overline>
           {prep.tree.map((group) => (
             <Fragment key={group.label}>
               <div className="flex items-center gap-2 px-2 pt-2.5 pb-1 text-[13px] text-data">
@@ -88,7 +88,7 @@ export function Sidebar({ prep }: { prep: KeyPrep }) {
           className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-control text-[13px] text-fg transition hover:border-subtle disabled:cursor-wait disabled:opacity-60"
         >
           <RefreshIcon width={16} height={16} className={key.scanning ? 'motion-safe:animate-spin' : ''} />
-          {key.scanning ? 'Lecture…' : 'Relire la clé'}
+          {key.scanning ? 'Reading…' : 'Re-read the stick'}
         </button>
       </div>
     </aside>
@@ -106,19 +106,29 @@ function KeyCard({ prep }: { prep: KeyPrep }) {
       <div className="flex items-center gap-2.5">
         <UsbIcon width={18} height={18} className={plugged ? 'text-data' : 'text-subtle'} />
         <span className="min-w-0 flex-1 truncate font-medium">{keyState.name}</span>
+        {/* Edits stay saved per track: coming back to this key finds them again. */}
+        <button
+          type="button"
+          onClick={keyState.connect}
+          disabled={prep.status === 'saving'}
+          title="Choose another USB stick"
+          className="h-7 shrink-0 cursor-pointer rounded-md border border-line-strong px-2 text-xs text-muted transition-colors hover:border-subtle hover:text-fg disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Change
+        </button>
       </div>
       <p className="mt-2 text-xs text-subtle tabular-nums">
-        {plural(files.length, 'morceau', 'morceaux')} · {formatBytes(size)}
+        {plural(files.length, 'track', 'tracks')} · {formatBytes(size)}
       </p>
       {plugged ? (
         <p className="mt-2.5 flex items-center gap-1.5 text-xs text-data">
           <Dot />
-          Connectée · lecture directe
+          Connected · read in place
         </p>
       ) : (
         <p className="mt-2.5 flex items-center gap-1.5 text-xs text-accent">
           <span aria-hidden="true" className="size-1.5 rounded-full bg-accent" />
-          Débranchée · rebranchez-la pour continuer
+          Unplugged · plug it back in to continue
         </p>
       )}
       <KeyLocation prep={prep} />
@@ -130,19 +140,19 @@ function PendingSummary({ prep }: { prep: KeyPrep }) {
   const saved = prep.status === 'saved'
   const rows = saved
     ? [
-        { label: 'Morceaux rangés', value: prep.sortedCount },
-        { label: 'Hot cues écrits', value: prep.cuesToWrite },
-        { label: 'À confirmer', value: prep.unsortedCount, flag: true },
+        { label: 'Tracks sorted', value: prep.sortedCount },
+        { label: 'Hot cues written', value: prep.cuesToWrite },
+        { label: 'To confirm', value: prep.unsortedCount, flag: true },
       ]
     : [
-        { label: 'Morceaux à ranger', value: prep.sortedCount },
-        { label: 'Hot cues à écrire', value: prep.cuesToWrite },
-        { label: 'Ambiances à confirmer', value: prep.unsortedCount, flag: true },
+        { label: 'Tracks to sort', value: prep.sortedCount },
+        { label: 'Hot cues to write', value: prep.cuesToWrite },
+        { label: 'Energy to confirm', value: prep.unsortedCount, flag: true },
       ]
 
   return (
     <div className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-3.5">
-      <Overline>{saved ? 'Clé à jour' : 'À enregistrer'}</Overline>
+      <Overline>{saved ? 'Stick up to date' : 'To save'}</Overline>
       {rows.map((row) => (
         <div key={row.label} className="flex justify-between text-[13px]">
           <span className="text-muted">{row.label}</span>
@@ -164,7 +174,7 @@ const DRIVE_LETTERS = ['D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
 function KeyLocation({ prep }: { prep: KeyPrep }) {
   if (prep.location) {
     return (
-      <p className="mt-2 truncate text-xs text-subtle" title="Où rekordbox trouvera les morceaux">
+      <p className="mt-2 truncate text-xs text-subtle" title="Where rekordbox will find the tracks">
         rekordbox : <span className="text-data tabular-nums">{prep.location}</span>
       </p>
     )
@@ -173,7 +183,7 @@ function KeyLocation({ prep }: { prep: KeyPrep }) {
   if (/Windows/.test(navigator.userAgent)) {
     return (
       <div className="mt-3 flex flex-col gap-1.5 text-xs text-subtle">
-        <span id="drive-label">Lettre de la clé dans l’Explorateur :</span>
+        <span id="drive-label">Drive letter of the stick in File Explorer:</span>
         <div role="group" aria-labelledby="drive-label" className="flex flex-wrap gap-1">
           {DRIVE_LETTERS.map((letter) => (
             <button
@@ -192,11 +202,11 @@ function KeyLocation({ prep }: { prep: KeyPrep }) {
 
   return (
     <label className="mt-3 flex flex-col gap-1 text-xs text-subtle">
-      Dossier de la clé sur cet ordinateur
+      Folder of the stick on this computer
       <input
         type="text"
         onBlur={(event) => prep.key.setLocation(event.target.value.trim())}
-        placeholder="/media/moi/MA_CLE/"
+        placeholder="/media/me/MY_STICK/"
         spellCheck={false}
         className="h-8 rounded-md border border-accent bg-canvas px-2 text-[13px] text-fg outline-none focus:border-accent"
       />

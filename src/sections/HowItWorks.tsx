@@ -2,18 +2,18 @@ import { Section, SectionTitle } from '../components/Section'
 
 const steps = [
   {
-    title: 'Branchez votre clé',
-    text: 'Cue lit les morceaux déjà présents dessus. Rien à importer.',
+    title: 'Plug in your stick',
+    text: 'Cue reads the tracks already on it. Nothing to import.',
     color: 'bg-grad-from',
   },
   {
-    title: 'Cue analyse',
-    text: 'Tempo, tonalité, ambiance et structure de chaque morceau. Vous ajustez le classement si besoin.',
+    title: 'Cue analyzes',
+    text: 'Tempo, key, energy level and structure of every track. Adjust the sorting if you need to.',
     color: 'bg-grad-via',
   },
   {
-    title: 'Enregistrez sur la clé',
-    text: 'Dossiers rangés et hot cues écrits directement sur la clé. Débranchez et jouez.',
+    title: 'Save to the stick',
+    text: 'Sorted folders and hot cues written straight to the stick. Unplug and play.',
     color: 'bg-grad-to',
   },
 ]
@@ -22,7 +22,7 @@ export function HowItWorks() {
   return (
     <Section id="fonctionnement" className="py-28">
       <div data-reveal>
-        <SectionTitle className="mb-14">Comment ça marche</SectionTitle>
+        <SectionTitle className="mb-14">How it works</SectionTitle>
         <div aria-hidden="true" className="mb-7 h-px bg-line-strong" />
       </div>
       <ol data-reveal-group className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-8">

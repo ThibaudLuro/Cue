@@ -24,20 +24,20 @@ export function AnalysisBar({ prep }: { prep: KeyPrep }) {
         <Spinner className="size-4 text-accent" />
         <span className="font-medium text-fg">
           {download
-            ? `Téléchargement du modèle d’analyse · ${Math.round(percent)} %`
+            ? `Downloading the analysis model · ${Math.round(percent)}%`
             : preparing
-              ? 'Préparation de l’analyse…'
-              : `Analyse des morceaux · ${analysis.done} sur ${analysis.total}`}
+              ? 'Preparing analysis…'
+              : `Analysing tracks · ${analysis.done} of ${analysis.total}`}
         </span>
         {track && (
           <span className="min-w-0 truncate text-muted">
-            En cours : {track.artist} – {track.title}
+            Now: {track.artist} – {track.title}
           </span>
         )}
         <span className="ml-auto text-xs text-subtle">
           {download
-            ? 'Une seule fois : ensuite le navigateur le garde'
-            : `${plural(left, 'morceau restant', 'morceaux restants')} · vous pouvez continuer à travailler`}
+            ? 'Only once: the browser keeps it afterwards'
+            : `${plural(left, 'track left', 'tracks left')} · you can keep working`}
         </span>
       </div>
       <div aria-hidden="true" className="h-[3px] overflow-hidden bg-line">

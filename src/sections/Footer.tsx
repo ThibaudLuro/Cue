@@ -2,27 +2,27 @@ import { Logo } from '../components/ui'
 
 const columns = [
   {
-    title: 'Produit',
+    title: 'Product',
     links: [
-      { href: '#cle-usb', label: 'Fonctionnalités' },
+      { href: '#cle-usb', label: 'Features' },
       { href: '#hot-cues', label: 'Hot cues' },
-      { href: '#tarifs', label: 'Tarifs' },
+      { href: '#tarifs', label: 'Pricing' },
     ],
   },
   {
-    title: 'Aide',
+    title: 'Help',
     links: [
       { href: '#faq', label: 'FAQ' },
-      { href: '#compatibilite', label: 'Compatibilité' },
+      { href: '#compatibilite', label: 'Compatibility' },
       { href: '#contact', label: 'Contact' },
     ],
   },
   {
-    title: 'Légal',
+    title: 'Legal',
     links: [
-      { href: '#confidentialite', label: 'Confidentialité' },
-      { href: '#conditions', label: 'Conditions' },
-      { href: '#mentions', label: 'Mentions légales' },
+      { href: '#confidentialite', label: 'Privacy' },
+      { href: '#conditions', label: 'Terms' },
+      { href: '#mentions', label: 'Legal notice' },
     ],
   },
 ]
@@ -37,7 +37,7 @@ export function Footer() {
             <span className="font-semibold">Cue</span>
           </div>
           <p className="max-w-[280px] text-sm text-subtle">
-            Votre clé USB rangée par BPM et par ambiance, avec ses hot cues.
+            Your USB stick sorted by BPM and energy level, hot cues included.
           </p>
         </div>
 

@@ -11,16 +11,16 @@ export function BeforeAfter() {
       <SectionHeader
         title={
           <>
-            Du dossier en vrac
-            <br />à la clé rangée.
+            From a messy folder
+            <br />to a tidy stick.
           </>
         }
-        intro="Noms de fichiers incohérents, téléchargements empilés, aucun repère : Cue remet de l’ordre sans rien supprimer."
+        intro="Inconsistent file names, piled-up downloads, nothing to go on: Cue brings order without deleting a thing."
       />
 
       <div data-reveal-group className="flex flex-col gap-4 md:flex-row">
         <div className="flex min-w-0 flex-col gap-4 rounded-[20px] border border-dashed border-line-strong p-6 md:flex-1">
-          <h3 className="text-xs tracking-[0.08em] text-subtle uppercase">Avant</h3>
+          <h3 className="text-xs tracking-[0.08em] text-subtle uppercase">Before</h3>
           <ul className="flex flex-col gap-0.5">
             {messyFiles.map((file) => (
               <li key={file} className="flex items-center gap-2.5 px-2.5 py-2 text-[13px] text-subtle">
@@ -39,7 +39,7 @@ export function BeforeAfter() {
 
         <div className="min-w-0 rounded-[20px] bg-gradient-frame p-px md:flex-1">
           <div className="flex h-full flex-col gap-4 rounded-[19px] bg-surface p-6">
-            <h3 className="text-xs tracking-[0.08em] text-accent uppercase">Après</h3>
+            <h3 className="text-xs tracking-[0.08em] text-accent uppercase">After</h3>
             <ul className="flex flex-col gap-0.5">
               {tidyFolders.map((folder) => (
                 <li

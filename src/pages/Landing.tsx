@@ -19,7 +19,7 @@ export function Landing() {
   useScrollReveal()
 
   useEffect(() => {
-    document.title = 'Cue — Votre clé USB, prête à jouer'
+    document.title = 'Cue — Your USB stick, ready to play'
   }, [])
 
   return (

@@ -2,10 +2,49 @@ import type { Bar } from '../lib/waveform'
 import type { Wave } from './audio'
 import type { Section } from './structure'
 
-export const MOODS = ['Nocturne', 'Aérien', 'Mélodique', 'Solaire', 'Hypnotique', 'Sombre', 'Énergique'] as const
+// Tracks are sorted by energy, from the warm-up to the peak. The number keeps them in order
+// everywhere, rekordbox playlists included.
+export const MOODS = ['1 · Low', '2 · Warm-up', '3 · Groove', '4 · Build', '5 · Peak'] as const
 export type Mood = (typeof MOODS)[number]
 
-export const BPM_RANGES = ['Moins de 118 BPM', '118–121 BPM', '122–125 BPM', '126–129 BPM', '130+ BPM', 'BPM inconnu'] as const
+// Categories used before: corrections saved and keys exported with them still count, on the
+// closest energy level.
+export const FORMER_MOODS: Record<string, Mood> = {
+  Aérien: '1 · Low',
+  Dreamy: '1 · Low',
+  Airy: '1 · Low',
+  Nocturne: '2 · Warm-up',
+  Deep: '2 · Warm-up',
+  Smooth: '2 · Warm-up',
+  Mélodique: '3 · Groove',
+  Emotional: '3 · Groove',
+  Uplifting: '3 · Groove',
+  Solaire: '3 · Groove',
+  Sunset: '3 · Groove',
+  Warm: '3 · Groove',
+  Hypnotique: '4 · Build',
+  Hypnotic: '4 · Build',
+  Sombre: '4 · Build',
+  Dark: '4 · Build',
+  Énergique: '5 · Peak',
+  Banger: '5 · Peak',
+  Intense: '5 · Peak',
+  '2 · Mellow': '2 · Warm-up',
+  '4 · Driving': '4 · Build',
+}
+
+export function toMood(name: string): Mood | undefined {
+  return MOODS.find((mood) => mood === name) ?? FORMER_MOODS[name]
+}
+
+export const BPM_RANGES = [
+  '< 118 BPM',
+  '118–121 BPM',
+  '122–125 BPM',
+  '126–129 BPM',
+  '130+ BPM',
+  'Unknown BPM',
+] as const
 
 export type Grouping = 'bpm' | 'mood'
 
@@ -42,7 +81,7 @@ export function trackFromFile(path: string, duration: number): Track {
   const segments = path.split('/')
   const base = segments[segments.length - 1].replace(/\.[^.]+$/, '').replace(/_/g, ' ').trim()
   const dash = base.indexOf(' - ')
-  const artist = dash > 0 ? base.slice(0, dash).trim() : (segments[segments.length - 2] ?? 'Artiste inconnu')
+  const artist = dash > 0 ? base.slice(0, dash).trim() : (segments[segments.length - 2] ?? 'Unknown artist')
   const title = dash > 0 ? base.slice(dash + 3).trim() : base
 
   return {
@@ -57,7 +96,7 @@ export function trackFromFile(path: string, duration: number): Track {
     beat: null,
     downbeat: null,
     sections: [],
-    confidence: 'à analyser',
+    confidence: 'not analysed yet',
   }
 }
 
@@ -70,7 +109,7 @@ function bpmRange(bpm: number | null) {
   return BPM_RANGES[4]
 }
 
-// Folder ids are "primary|secondary", e.g. "122–125 BPM|Sombre" when sorting by BPM first.
+// Folder ids are "primary|secondary", e.g. "122–125 BPM|Dark" when sorting by BPM first.
 export function folderOf(track: Pick<Track, 'bpm' | 'mood'>, grouping: Grouping) {
   if (!track.mood) return UNSORTED
   const range = bpmRange(track.bpm)
@@ -78,14 +117,14 @@ export function folderOf(track: Pick<Track, 'bpm' | 'mood'>, grouping: Grouping)
 }
 
 export function folderSegments(folder: string): [string, string] {
-  if (folder === UNSORTED) return ['Non classés', 'Ambiance à confirmer']
+  if (folder === UNSORTED) return ['Unsorted', 'Energy to confirm']
   const [primary, secondary] = folder.split('|')
   return [primary, secondary]
 }
 
 export function folderPath(track: Pick<Track, 'bpm' | 'mood'>, grouping: Grouping, keyName: string) {
   const folder = folderOf(track, grouping)
-  const segments = folder === UNSORTED ? ['Non classés'] : folderSegments(folder)
+  const segments = folder === UNSORTED ? ['Unsorted'] : folderSegments(folder)
   return [keyName, ...segments].join(' / ') + ' /'
 }
 
@@ -110,9 +149,9 @@ export function folderTree(tracks: Pick<Track, 'bpm' | 'mood'>[], grouping: Grou
   const unsorted = tracks.filter((t) => !t.mood).length
   if (unsorted > 0) {
     groups.push({
-      label: 'Non classés',
+      label: 'Unsorted',
       count: unsorted,
-      folders: [{ id: UNSORTED, label: 'Ambiance à confirmer', count: unsorted }],
+      folders: [{ id: UNSORTED, label: 'Energy to confirm', count: unsorted }],
     })
   }
   return groups
@@ -149,14 +188,14 @@ export function cueLetter(index: number) {
 }
 
 export function formatBytes(bytes: number) {
-  const units = ['o', 'Ko', 'Mo', 'Go', 'To']
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
   let value = bytes
   let unit = 0
   while (value >= 1000 && unit < units.length - 1) {
     value /= 1000
     unit++
   }
-  return `${value.toLocaleString('fr-FR', { maximumFractionDigits: unit > 2 ? 1 : 0 })} ${units[unit]}`
+  return `${value.toLocaleString('en-US', { maximumFractionDigits: unit > 2 ? 1 : 0 })} ${units[unit]}`
 }
 
 export function formatTime(seconds: number) {

@@ -8,19 +8,19 @@ export type Folder = {
 }
 
 export const folders: Folder[] = [
-  { name: 'SET_SAMEDI', depth: 0 },
-  { name: '118–122 BPM', depth: 1, count: 14 },
-  { name: '122–126 BPM', depth: 1, count: 23 },
-  { name: 'Sombre', depth: 2, count: 9, selected: true },
-  { name: 'Solaire', depth: 2, count: 8 },
-  { name: 'Mélodique', depth: 2, count: 6 },
-  { name: '126–130 BPM', depth: 1, count: 15 },
+  { name: 'SATURDAY_SET', depth: 0 },
+  { name: '118–121 BPM', depth: 1, count: 14 },
+  { name: '122–125 BPM', depth: 1, count: 23 },
+  { name: '4 · Build', depth: 2, count: 9, selected: true },
+  { name: '3 · Groove', depth: 2, count: 8 },
+  { name: '2 · Warm-up', depth: 2, count: 6 },
+  { name: '126–129 BPM', depth: 1, count: 15 },
   { name: '130+ BPM', depth: 1, count: 8 },
 ]
 
 export const trackParts: TrackPart[] = [
   { cue: 'A', label: 'Intro', start: 0, end: 0.12, energy: 0.35 },
-  { cue: 'B', label: 'Montée', start: 0.12, end: 0.25, energy: 0.6 },
+  { cue: 'B', label: 'Build-up', start: 0.12, end: 0.25, energy: 0.6 },
   { cue: 'C', label: 'Drop', start: 0.25, end: 0.45, energy: 1 },
   { cue: 'D', label: 'Break', start: 0.45, end: 0.58, energy: 0.35 },
   { cue: 'E', label: 'Drop 2', start: 0.58, end: 0.85, energy: 1 },
@@ -30,9 +30,9 @@ export const trackParts: TrackPart[] = [
 export const trackBars = partsWave(trackParts, 150)
 
 export const tracks = [
-  { title: 'Kessler Unit — Concrete Bloom', bpm: 124, key: '9A', mood: 'Sombre', cues: 6 },
-  { title: 'Ilan Morrow — Night Shift (Dub)', bpm: 124, key: '9B', mood: 'Sombre', cues: 5 },
-  { title: 'Halden — Glass Floor', bpm: 125, key: '10A', mood: 'Sombre', cues: 7 },
+  { title: 'Kessler Unit — Concrete Bloom', bpm: 124, key: '9A', mood: '4 · Build', cues: 6 },
+  { title: 'Ilan Morrow — Night Shift (Dub)', bpm: 124, key: '9B', mood: '4 · Build', cues: 5 },
+  { title: 'Halden — Glass Floor', bpm: 125, key: '10A', mood: '4 · Build', cues: 7 },
 ]
 
 export type CuePart = { cue: string; width: number; level: EnergyLevel }
@@ -68,7 +68,7 @@ export const messyFiles = [
   'Kessler Unit - Concrete Bloom (Original Mix).wav',
   'DL_20260412_093.mp3',
   'low tide MASTER.aiff',
-  'Nouveau dossier (3)',
+  'New Folder (3)',
   'paloma_rhea_marin_edit.flac',
   'untitled 04.mp3',
   'mercury lys 126.mp3',
@@ -76,11 +76,11 @@ export const messyFiles = [
 
 export const tidyFolders: { name: string; depth: 0 | 1 | 2; meta?: string }[] = [
   { name: 'CUE_USB', depth: 0 },
-  { name: '118–121 BPM / Nocturne', depth: 1, meta: '4' },
-  { name: '122–125 BPM / Sombre', depth: 1, meta: '9' },
+  { name: '118–121 BPM / 2 · Warm-up', depth: 1, meta: '4' },
+  { name: '122–125 BPM / 4 · Build', depth: 1, meta: '9' },
   { name: 'Concrete Bloom', depth: 2, meta: 'A–F' },
   { name: 'Night Shift (Dub)', depth: 2, meta: 'A–E' },
-  { name: '122–125 BPM / Solaire', depth: 1, meta: '8' },
-  { name: '126–129 BPM / Hypnotique', depth: 1, meta: '5' },
-  { name: '130+ BPM / Énergique', depth: 1, meta: '6' },
+  { name: '122–125 BPM / 3 · Groove', depth: 1, meta: '8' },
+  { name: '126–129 BPM / 4 · Build', depth: 1, meta: '5' },
+  { name: '130+ BPM / 5 · Peak', depth: 1, meta: '6' },
 ]

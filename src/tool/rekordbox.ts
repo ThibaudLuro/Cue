@@ -37,7 +37,7 @@ const CLASSIC: Record<string, string> = {
 // Hot cue colours on the CDJ, by kind of part.
 const CUE_COLOURS: [RegExp, [number, number, number]][] = [
   [/^Drop/, [255, 106, 0]],
-  [/^Montée/, [255, 200, 0]],
+  [/^(Build-up|Montée)/, [255, 200, 0]],
   [/^Break/, [48, 90, 255]],
   [/^(Intro|Outro)/, [40, 226, 20]],
 ]
@@ -75,7 +75,7 @@ function seconds(value: number) {
 
 function trackXml(track: ExportTrack, id: number, root: string) {
   const extension = track.path.split('.').pop()?.toLowerCase() ?? ''
-  const comments = [track.mood && `Ambiance : ${track.mood}`, track.energy > 0 && `Énergie ${track.energy}/5`]
+  const comments = [track.mood && `Energy: ${track.mood}`]
     .filter(Boolean)
     .join(' · ')
   const head = attributes({

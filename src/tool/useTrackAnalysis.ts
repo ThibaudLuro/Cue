@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { idbGet, idbGetAll, idbSet } from '../lib/idb'
 import { readExcerpts, RHYTHM_RATE } from './audio'
 import { embedClips, embedTexts, onModelDownload } from './clap'
-import { MOODS, type Mood } from './model'
+import { MOODS, toMood, type Mood } from './model'
 import {
+  CLAP_MODEL,
   guessMood,
   moodVectors,
   promptList,
@@ -29,9 +30,17 @@ async function loadVectors() {
 
 // What a track still needs. Older analyses may lack the rhythm, the beat grid or the energy
 // curve: the audio is then read again, without re-running the mood model.
+// A file that failed is not retried until it changes on the key (or the mood model does).
 function missing(analysis: Analysis | undefined, withMood: boolean) {
+  if (analysis?.unreadable) return { mood: false, signal: false }
   const signal = !analysis?.rhythm || analysis.rhythm.beat === undefined || !analysis.curve
-  return { mood: withMood && !analysis?.embedding, signal }
+  const mood = withMood && !analysis?.embedding && analysis?.moodFailed !== CLAP_MODEL
+  return { mood, signal }
+}
+
+function hasWork(analysis: Analysis | undefined) {
+  const needs = missing(analysis, true)
+  return needs.mood || needs.signal
 }
 
 // Analyses the key's tracks one by one in the background: mood (CLAP), tempo, key and parts.
@@ -40,8 +49,9 @@ export function useTrackAnalysis(files: KeyFile[]) {
   const [vectors, setVectors] = useState<MoodVectors | null>(null)
   // By file path.
   const [analyses, setAnalyses] = useState<Record<string, Analysis>>({})
+  // Files whose saved analyses were looked up: until then, nothing is said to be missing.
+  const [lookedUp, setLookedUp] = useState<KeyFile[] | null>(null)
   const [corrections, setCorrections] = useState<Record<string, Mood>>({})
-  const [failed, setFailed] = useState<string[]>([])
   const [current, setCurrent] = useState<string | null>(null)
   const [download, setDownload] = useState<{ loaded: number; total: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -49,7 +59,15 @@ export function useTrackAnalysis(files: KeyFile[]) {
   useEffect(() => onModelDownload(setDownload), [])
 
   useEffect(() => {
-    idbGetAll<Mood>('corrections').then(setCorrections)
+    // Corrections saved under a former mood name count under the new one.
+    idbGetAll<string>('corrections').then((stored) => {
+      const read: Record<string, Mood> = {}
+      for (const [path, name] of Object.entries(stored)) {
+        const mood = toMood(name)
+        if (mood) read[path] = mood
+      }
+      setCorrections(read)
+    })
   }, [])
 
   useEffect(() => {
@@ -63,7 +81,7 @@ export function useTrackAnalysis(files: KeyFile[]) {
       }
       if (cancelled) return
       setAnalyses(known)
-      setFailed([])
+      setLookedUp(files)
       if (files.length === 0) return
 
       // Without the mood model (offline…), tempo and key still get detected.
@@ -76,7 +94,7 @@ export function useTrackAnalysis(files: KeyFile[]) {
       } catch {
         if (cancelled) return
         withMood = false
-        setError('Le modèle d’ambiance n’a pas pu être chargé : vérifiez votre connexion internet. BPM et clé sont tout de même détectés.')
+        setError('The energy model could not be loaded: check your internet connection. BPM and key are still detected.')
       }
 
       for (const file of files) {
@@ -85,24 +103,31 @@ export function useTrackAnalysis(files: KeyFile[]) {
         const needs = missing(previous, withMood)
         if (!needs.mood && !needs.signal) continue
         setCurrent(file.path)
+        // Whatever happens, the outcome is saved: a file is never analysed twice for nothing.
+        let analysis: Analysis
         try {
           const excerpts = await readExcerpts(file.handle)
+          // Each part on its own: a mood model failure does not throw away tempo and key.
           const [clips, rhythm] = await Promise.all([
-            needs.mood ? embedClips(excerpts.clips) : null,
-            needs.signal ? detectRhythmOffThread(excerpts.signal, RHYTHM_RATE, excerpts.signalOffset) : null,
+            needs.mood ? embedClips(excerpts.clips).catch(() => null) : null,
+            needs.signal
+              ? detectRhythmOffThread(excerpts.signal, RHYTHM_RATE, excerpts.signalOffset).catch(() => null)
+              : null,
           ])
-          const analysis: Analysis = {
+          analysis = {
             ...previous,
             loudness: excerpts.loudness,
             duration: excerpts.duration,
             ...(clips && { embedding: trackEmbedding(clips) }),
-            ...(rhythm && { rhythm, curve: excerpts.curve }),
+            ...(needs.mood && !clips && { moodFailed: CLAP_MODEL }),
+            // No tempo found is an answer too: kept, so it is not searched again.
+            ...(needs.signal && { rhythm: rhythm ?? { bpm: null, key: null, beat: null }, curve: excerpts.curve }),
           }
-          await idbSet('analyses', fileKey(file), analysis)
-          if (!cancelled) setAnalyses((all) => ({ ...all, [file.path]: analysis }))
         } catch {
-          if (!cancelled) setFailed((paths) => [...paths, file.path])
+          analysis = { ...previous, loudness: previous?.loudness ?? -100, duration: previous?.duration ?? 0, unreadable: true }
         }
+        await idbSet('analyses', fileKey(file), analysis)
+        if (!cancelled) setAnalyses((all) => ({ ...all, [file.path]: analysis }))
       }
       if (!cancelled) setCurrent(null)
     })()
@@ -144,11 +169,11 @@ export function useTrackAnalysis(files: KeyFile[]) {
 
   function state(path: string): AnalysisState {
     if (isDone(path)) return 'done'
-    if (failed.includes(path)) return 'failed'
+    if (analyses[path]?.unreadable) return 'failed'
     return path === current ? 'running' : 'pending'
   }
 
-  const done = files.filter((file) => isDone(file.path) || failed.includes(file.path)).length
+  const done = files.filter((file) => isDone(file.path) || analyses[file.path]?.unreadable).length
 
   return {
     analyses,
@@ -159,7 +184,8 @@ export function useTrackAnalysis(files: KeyFile[]) {
     progress: {
       done,
       total: files.length,
-      running: current !== null || (!vectors && !error && files.length > 0),
+      // Only when a track actually needs work: an analysed key opens without the banner.
+      running: current !== null || (!vectors && !error && lookedUp === files && files.some((file) => hasWork(analyses[file.path]))),
       // Only while the model is actually being fetched.
       download: download && download.loaded < download.total ? download : null,
       // Path of the track being analysed right now.

@@ -48,7 +48,7 @@ export function usePlayer(file: KeyFile | undefined) {
       player.src = loaded.current.url
       return player
     } catch {
-      setError({ path: file.path, value: 'Lecture impossible : la clé est-elle toujours branchée ?' })
+      setError({ path: file.path, value: 'Can’t play this: is the stick still plugged in?' })
       return null
     } finally {
       setLoading(false)
@@ -90,7 +90,7 @@ export function usePlayer(file: KeyFile | undefined) {
     const player = await load()
     if (!player) return
     if (player.paused) {
-      player.play().catch(() => setError({ path, value: 'Le navigateur ne sait pas lire ce fichier.' }))
+      player.play().catch(() => setError({ path, value: 'The browser can’t play this file.' }))
     } else {
       player.pause()
     }

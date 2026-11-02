@@ -23,7 +23,7 @@ export function TrackEditor({ prep }: { prep: KeyPrep }) {
 
   return (
     <section
-      aria-label="Morceau sélectionné"
+      aria-label="Selected track"
       className="relative flex shrink-0 flex-col overflow-x-hidden overflow-y-auto rounded-xl border border-line bg-surface md:max-h-[58vh] xl:flex-row"
     >
       <div className="min-w-0 flex-1 p-5">
@@ -31,7 +31,7 @@ export function TrackEditor({ prep }: { prep: KeyPrep }) {
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
-              aria-label={player.playing ? 'Mettre en pause' : 'Lire le morceau'}
+              aria-label={player.playing ? 'Pause' : 'Play track'}
               title="Espace"
               onClick={player.toggle}
               disabled={player.loading}
@@ -42,14 +42,14 @@ export function TrackEditor({ prep }: { prep: KeyPrep }) {
             <div className="flex min-w-0 flex-col">
               <NameInput
                 key={`${track.id}-title-${track.title}`}
-                label="Titre"
+                label="Title"
                 value={track.title}
                 onCommit={(value) => prep.renameTrack('title', value)}
                 className="text-base font-semibold text-fg"
               />
               <NameInput
                 key={`${track.id}-artist-${track.artist}`}
-                label="Artiste"
+                label="Artist"
                 value={track.artist}
                 onCommit={(value) => prep.renameTrack('artist', value)}
                 className="text-[13px] text-subtle"
@@ -143,13 +143,13 @@ function Waveform({ prep }: { prep: KeyPrep }) {
       <div
         role="slider"
         tabIndex={0}
-        aria-label="Position de lecture"
+        aria-label="Playback position"
         aria-valuemin={0}
         aria-valuemax={Math.round(duration)}
         aria-valuenow={Math.round(player.time)}
         aria-valuetext={formatTime(player.time)}
         ref={area}
-        title="Clic : écouter ici · double-clic : poser un hot cue · Maj + ← → : déplacer le cue sélectionné"
+        title="Click: play from here · double-click: add a hot cue · Shift + ← →: move the selected cue"
         onClick={seekTo}
         onDoubleClick={(event) => prep.addCueAt(positionAt(event.clientX), !event.altKey)}
         onKeyDown={onKey}
@@ -184,7 +184,7 @@ function Waveform({ prep }: { prep: KeyPrep }) {
               style={{ left: `${position * 100}%` }}
             >
               <span
-                title={`Hot cue ${cueLetter(i)} · glisser pour déplacer (Alt : sans aimanter au temps)`}
+                title={`Hot cue ${cueLetter(i)} · drag to move (Alt: don’t snap to the beat)`}
                 onPointerDown={(event) => startDrag(event, i, cue.position)}
                 onPointerMove={moveDrag}
                 onPointerUp={endDrag}
@@ -198,7 +198,7 @@ function Waveform({ prep }: { prep: KeyPrep }) {
               {dragged && drag.moved && (
                 <span className="pointer-events-none absolute -top-[30px] left-1/2 -translate-x-1/2 rounded-md border border-line-strong bg-surface px-2 py-0.5 text-[11px] whitespace-nowrap text-fg tabular-nums">
                   {formatCueTime(position * duration)}
-                  {grid && ` · mesure ${grid.bar}.${grid.beat}`}
+                  {grid && ` · bar ${grid.bar}.${grid.beat}`}
                 </span>
               )}
             </div>
@@ -212,7 +212,7 @@ function Waveform({ prep }: { prep: KeyPrep }) {
           />
         )}
       </div>
-      <div aria-label="Structure du morceau" className="mt-2 flex border-t border-line-strong">
+      <div aria-label="Track structure" className="mt-2 flex border-t border-line-strong">
         {sections.map((section) => (
           <span
             key={section.label}
@@ -226,13 +226,13 @@ function Waveform({ prep }: { prep: KeyPrep }) {
         {sections.length === 0 && track.analysis !== 'done' && (
           <span className="flex items-center gap-1.5 pt-2 pl-1.5 text-[11px] text-muted">
             {track.analysis === 'failed' ? (
-              'Analyse impossible : fichier illisible'
+              'Analysis failed: unreadable file'
             ) : (
               <>
                 <Spinner className="size-3 text-accent" />
                 {track.analysis === 'running'
-                  ? 'Analyse de ce morceau : BPM, tonalité, parties et hot cues arrivent…'
-                  : 'En attente d’analyse : les parties et les hot cues apparaîtront ensuite'}
+                  ? 'Analysing this track: BPM, key, sections and hot cues on their way…'
+                  : 'Waiting for analysis: sections and hot cues will show up next'}
               </>
             )}
           </span>
@@ -249,7 +249,7 @@ function TrackDetails({ prep }: { prep: KeyPrep }) {
     <div className="flex flex-col gap-[22px] border-t border-line p-5 xl:w-[260px] xl:shrink-0 xl:border-t-0 xl:border-l">
       <div>
         <Overline id="mood-label" className="mb-2.5">
-          Ambiance
+          Energy
         </Overline>
         <div role="group" aria-labelledby="mood-label" className="flex flex-wrap gap-1.5">
           {MOODS.map((mood) => {
@@ -268,28 +268,16 @@ function TrackDetails({ prep }: { prep: KeyPrep }) {
           })}
         </div>
         <p className="mt-2.5 text-xs text-subtle">
-          Détection : <span className="text-data">{track.confidence}</span>
+          Detection: <span className="text-data">{track.confidence}</span>
         </p>
       </div>
 
       <div>
-        <Overline className="mb-2.5">Énergie</Overline>
-        <div role="img" aria-label={`Énergie ${track.energy} sur 5`} className="flex gap-1">
-          {[1, 2, 3, 4, 5].map((level) => (
-            <span
-              key={level}
-              className={`h-2 flex-1 rounded-[2px] transition-colors ${level <= track.energy ? 'bg-data' : 'bg-line-strong'}`}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Overline className="mb-2">Rangé dans</Overline>
+        <Overline className="mb-2">Filed in</Overline>
         <p className="rounded-lg border border-line bg-canvas px-3 py-2.5 text-xs text-data tabular-nums">
           {folderPath(track, prep.grouping, prep.key.name)}
         </p>
-        <p className="mt-2 text-xs text-subtle">Changer l’ambiance déplace le morceau.</p>
+        <p className="mt-2 text-xs text-subtle">Changing the energy moves the track.</p>
       </div>
     </div>
   )
@@ -313,7 +301,7 @@ function NameInput({
     <input
       type="text"
       aria-label={label}
-      title={`Modifier : ${label.toLowerCase()}`}
+      title={`Edit ${label.toLowerCase()}`}
       value={draft}
       onChange={(event) => setDraft(event.target.value)}
       onBlur={() => {

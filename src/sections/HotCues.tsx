@@ -3,12 +3,12 @@ import { trackParts } from '../data/demo'
 import { energyLevel, type EnergyLevel } from '../lib/waveform'
 
 const cueGuide = [
-  { cue: 'A', label: 'Intro', use: 'Le point d’entrée pour lancer le mix.' },
-  { cue: 'B', label: 'Montée', use: 'Là où la tension commence.' },
-  { cue: 'C', label: 'Drop', use: 'Le moment fort, à caler au bon temps.' },
-  { cue: 'D', label: 'Break', use: 'Pour respirer ou enchaîner un autre titre.' },
-  { cue: 'E', label: 'Drop 2', use: 'Le second temps fort.' },
-  { cue: 'F', label: 'Outro', use: 'Le point de sortie vers le morceau suivant.' },
+  { cue: 'A', label: 'Intro', use: 'Your way in to start the mix.' },
+  { cue: 'B', label: 'Build-up', use: 'Where the tension starts.' },
+  { cue: 'C', label: 'Drop', use: 'The big moment, ready to land on the beat.' },
+  { cue: 'D', label: 'Break', use: 'A breather, or a spot to bring in the next tune.' },
+  { cue: 'E', label: 'Drop 2', use: 'The second big moment.' },
+  { cue: 'F', label: 'Outro', use: 'Your way out into the next track.' },
 ]
 
 const segmentColor: Record<EnergyLevel, string> = {
@@ -25,12 +25,12 @@ export function HotCues() {
     <Section id="hot-cues" revealGroup className="flex flex-wrap items-start gap-16 py-28">
       <div className="flex flex-[1_1_360px] flex-col gap-5">
         <span className="text-xs tracking-[0.08em] text-accent uppercase">Hot cues</span>
-        <SectionTitle>Un repère sur chaque partie qui compte.</SectionTitle>
+        <SectionTitle>A cue on every section that matters.</SectionTitle>
         <p className="max-w-[440px] text-muted">
-          Cue repère la structure de chaque morceau et pose un hot cue au début de chaque partie. Jusqu’à huit par
-          morceau, comme les pads de votre contrôleur, chacun avec sa couleur.
+          Cue maps out each track’s structure and drops a hot cue at the start of every section. Up to eight per
+          track, like the pads on your controller, each with its own color.
         </p>
-        <p className="max-w-[440px] text-muted">Un repère mal placé ? Déplacez-le ou renommez-le, la clé suit.</p>
+        <p className="max-w-[440px] text-muted">Cue in the wrong spot? Move it or rename it, and the stick follows.</p>
       </div>
 
       <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-6">

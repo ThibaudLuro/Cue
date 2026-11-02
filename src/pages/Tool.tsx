@@ -13,7 +13,7 @@ export function Tool() {
   const key = useUsbKey()
 
   useEffect(() => {
-    document.title = 'Cue — Préparer ma clé'
+    document.title = 'Cue — Prepare my stick'
     // Coming from the landing, the browser would keep its scroll position.
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [])
@@ -45,33 +45,33 @@ function Workspace({ usbKey }: { usbKey: UsbKey }) {
 function connectCopy(key: UsbKey) {
   if (key.phase === 'unsupported')
     return {
-      title: 'Navigateur non compatible',
-      text: 'Cue lit votre clé directement depuis le navigateur : ouvrez cette page dans Chrome, Edge ou Opera, sur ordinateur.',
+      title: 'Browser not supported',
+      text: 'Cue reads your stick straight from the browser: open this page in Chrome, Edge or Opera, on a computer.',
     }
   if (key.phase === 'checking' || key.scanning)
-    return { title: 'Lecture de la clé…', text: 'Cue cherche les morceaux sur votre clé.' }
+    return { title: 'Reading the stick…', text: 'Cue is looking for tracks on your stick.' }
   if (key.phase === 'reconnect')
     return {
-      title: `Reprendre ${key.name}`,
-      text: 'Le navigateur demande votre accord avant que Cue relise la clé utilisée la dernière fois.',
-      action: 'Autoriser l’accès',
+      title: `Resume ${key.name}`,
+      text: 'The browser asks for your go-ahead before Cue reads the stick you used last time.',
+      action: 'Allow access',
     }
   if (key.phase === 'unplugged')
     return {
-      title: `Rebranchez ${key.name}`,
-      text: 'Cue la détectera dès qu’elle sera branchée. Vous pouvez aussi choisir une autre clé.',
-      action: 'Choisir une autre clé',
+      title: `Plug ${key.name} back in`,
+      text: 'Cue will pick it up as soon as it is plugged in. You can also choose another stick.',
+      action: 'Choose another stick',
     }
   if (key.files?.length === 0)
     return {
-      title: 'Aucun morceau sur cette clé',
-      text: `Cue n’a trouvé aucun fichier MP3, WAV, FLAC ou AIFF dans ${key.name}. Vérifiez que vous avez choisi la bonne clé.`,
-      action: 'Choisir une autre clé',
+      title: 'No tracks on this stick',
+      text: `Cue found no MP3, WAV, FLAC or AIFF file in ${key.name}. Check that you picked the right stick.`,
+      action: 'Choose another stick',
     }
   return {
-    title: 'Branchez votre clé USB',
-    text: 'Puis choisissez-la dans la fenêtre du navigateur : sélectionnez la clé elle-même, pas un dossier à l’intérieur. Vos morceaux ne quittent pas la clé.',
-    action: 'Connecter ma clé',
+    title: 'Plug in your USB stick',
+    text: 'Then pick it in the browser window: select the stick itself, not a folder inside it. Your tracks never leave the stick.',
+    action: 'Connect my stick',
   }
 }
 
@@ -82,7 +82,7 @@ function ConnectKey({ usbKey }: { usbKey: UsbKey }) {
   return (
     <div className="flex min-h-screen flex-col bg-canvas text-sm leading-[1.45] text-fg">
       <header className="flex min-h-[60px] items-center border-b border-line px-5 py-2.5">
-        <Link to="/" aria-label="Cue, accueil" className="flex items-center gap-2 text-fg">
+        <Link to="/" aria-label="Cue, home" className="flex items-center gap-2 text-fg">
           <Logo size="md" />
           <span className="text-base font-semibold tracking-[-0.02em]">Cue</span>
         </Link>
@@ -109,7 +109,7 @@ function ConnectKey({ usbKey }: { usbKey: UsbKey }) {
               onClick={usbKey.connect}
               className="mt-3 h-9 cursor-pointer rounded-lg px-3 text-[13px] text-muted transition-colors hover:text-fg"
             >
-              Choisir une autre clé
+              Choose another stick
             </button>
           )}
           {usbKey.error && (

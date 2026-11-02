@@ -2,15 +2,15 @@ import type { KeyTrack } from './useKeyPrep'
 
 // Where the cues shown come from, in a word.
 export function cueOrigin(track: KeyTrack) {
-  if (track.cueSource === 'rekordbox') return 'repris de rekordbox'
-  if (track.cueSource === 'xml') return 'repris de l’export XML'
-  if (track.cueSource === 'edit') return 'modifiés dans Cue'
-  return 'placement auto'
+  if (track.cueSource === 'rekordbox') return 'from rekordbox'
+  if (track.cueSource === 'xml') return 'from the XML export'
+  if (track.cueSource === 'edit') return 'edited in Cue'
+  return 'auto placement'
 }
 
 export function resetLabel(track: KeyTrack) {
-  if (track.cueSource !== 'edit') return 'Placement auto'
-  if (track.keyCues === 'rekordbox') return 'Revenir à rekordbox'
-  if (track.keyCues === 'xml') return 'Revenir à l’export'
-  return 'Replacer auto'
+  if (track.cueSource !== 'edit') return 'Auto placement'
+  if (track.keyCues === 'rekordbox') return 'Back to rekordbox'
+  if (track.keyCues === 'xml') return 'Back to the export'
+  return 'Reset to auto'
 }

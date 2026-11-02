@@ -2,9 +2,9 @@ import { Link } from 'react-router'
 import { Logo } from '../components/ui'
 
 const links = [
-  { href: '#cle-usb', label: 'Fonctionnalités' },
+  { href: '#cle-usb', label: 'Features' },
   { href: '#hot-cues', label: 'Hot cues' },
-  { href: '#tarifs', label: 'Tarifs' },
+  { href: '#tarifs', label: 'Pricing' },
   { href: '#faq', label: 'FAQ' },
 ]
 
@@ -12,7 +12,7 @@ export function Header() {
   return (
     <header className="relative z-[2] border-b border-line">
       <nav
-        aria-label="Navigation principale"
+        aria-label="Main navigation"
         className="mx-auto flex min-h-18 max-w-[1200px] flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-4 lg:py-0"
       >
         <a href="#top" className="flex items-center gap-2.5 text-fg">
@@ -34,13 +34,13 @@ export function Header() {
             href="#connexion"
             className="hidden h-10 items-center rounded-lg px-3.5 text-sm text-fg transition-colors hover:text-accent sm:flex"
           >
-            Se connecter
+            Log in
           </a>
           <Link
             to="/app"
             className="flex h-10 items-center rounded-lg bg-fg px-4 text-sm font-medium text-canvas transition hover:bg-data active:scale-[0.98]"
           >
-            Essayer gratuitement
+            Try it free
           </Link>
         </div>
       </nav>

@@ -5,48 +5,39 @@ import type { Rhythm } from './rhythm'
 // LAION's CLAP trained on music (Apache 2.0), converted for the browser.
 export const CLAP_MODEL = 'Xenova/larger_clap_music_and_speech'
 
-// How CLAP is told what each mood sounds like. It understands English descriptions; a few
-// phrasings per mood smooth out the quirks of any single one. Edit freely: the embeddings
+// How CLAP is told what each energy level sounds like. It understands English descriptions; a
+// few phrasings per level smooth out the quirks of any single one. Edit freely: the embeddings
 // are recomputed when this list changes.
 export const MOOD_PROMPTS: Record<Mood, string[]> = {
-  Nocturne: [
-    'late night deep house music, smooth and intimate',
-    'a mellow nocturnal electronic track for after hours',
-    'warm, subdued deep house with soft basslines at night',
+  '1 · Low': [
+    'calm ambient downtempo music, soft and slow',
+    'relaxed chill-out electronic track with gentle beats',
+    'quiet atmospheric music without a strong kick drum',
   ],
-  Aérien: [
-    'airy ethereal electronic music with floating pads',
-    'dreamy atmospheric house music, spacious and weightless',
-    'light ambient electronic track with soft reverb and open space',
+  '2 · Warm-up': [
+    'laid-back deep house with a soft groove',
+    'mellow warm-up house music, smooth and relaxed',
+    'easy-going lounge house with soft percussion',
   ],
-  Mélodique: [
-    'melodic house music with emotional synth melodies and chords',
-    'melodic techno with uplifting arpeggios and a strong lead melody',
-    'emotional progressive house with beautiful harmonies',
+  '3 · Groove': [
+    'groovy house music with a steady danceable beat',
+    'funky tech house groove for the dancefloor',
+    'rolling melodic house with a solid kick drum',
   ],
-  Solaire: [
-    'sunny summery afro house with warm percussion',
-    'bright feel-good disco house music, joyful and groovy',
-    'happy tropical dance music for a sunset party',
+  '4 · Build': [
+    'driving techno with a relentless pumping beat',
+    'energetic progressive house building tension',
+    'hypnotic driving rhythm with heavy bass',
   ],
-  Hypnotique: [
-    'hypnotic minimal techno with a repetitive looping groove',
-    'repetitive trance-inducing electronic rhythm, minimal and steady',
-    'deep hypnotic tech house with rolling percussion',
-  ],
-  Sombre: [
-    'dark ominous techno with heavy bass and industrial sounds',
-    'gloomy menacing electronic music with a dark atmosphere',
-    'dark warehouse techno, cold and mechanical',
-  ],
-  Énergique: [
-    'high energy peak time techno, driving and intense',
-    'powerful energetic club track with big drops',
-    'fast hard-hitting dance music for a packed dancefloor',
+  '5 · Peak': [
+    'powerful peak time techno with huge drops',
+    'hard-hitting fast dance music for a packed dancefloor',
+    'intense rave track with aggressive energy',
   ],
 }
 
-export const PROMPTS_KEY = `${CLAP_MODEL}|${JSON.stringify(MOOD_PROMPTS)}`
+// Only the descriptions matter (in MOODS order): renaming a mood does not re-embed them.
+export const PROMPTS_KEY = `${CLAP_MODEL}|${JSON.stringify(MOODS.map((mood) => MOOD_PROMPTS[mood]))}`
 
 // What the analysis keeps for one file. The mood itself is derived on the fly, so that the
 // DJ's corrections reshape it without re-analysing anything.
@@ -60,6 +51,10 @@ export type Analysis = {
   rhythm?: Rhythm
   // Missing in analyses saved before section detection existed.
   curve?: EnergyCurve
+  // The mood model failed on this file (with this model): not retried at every visit.
+  moodFailed?: string
+  // The file could not be decoded: not retried until it changes on the key.
+  unreadable?: boolean
 }
 
 export type MoodVectors = Record<Mood, number[]>
@@ -68,7 +63,7 @@ export type MoodGuess = { mood: Mood | null; confidence: string; energy: number 
 // Sharpness of the softmax over cosine similarities. CLAP's similarities are small and close
 // together; this spreads them into usable probabilities. To tune on real tracks.
 const SHARPNESS = 50
-// Margin between the first and second mood below which Cue asks the DJ.
+// Margin between the first and second level below which Cue asks the DJ.
 const UNSURE = 0.08
 const SURE = 0.25
 // Up to this share of the decision comes from the DJ's own corrections.
@@ -119,7 +114,7 @@ export function trackEmbedding(clipEmbeddings: number[][]) {
   return mean(clipEmbeddings.map(normalize))
 }
 
-// examples: embeddings of the tracks whose mood the DJ set by hand.
+// examples: embeddings of the tracks whose level the DJ set by hand.
 export function guessMood(
   embedding: number[],
   loudness: number,
@@ -128,7 +123,7 @@ export function guessMood(
 ): MoodGuess {
   const described = softmax(MOODS.map((mood) => dot(embedding, vectors[mood])))
 
-  // The DJ's corrections: closeness to the average of each mood's examples.
+  // The DJ's corrections: closeness to the average of each level's examples.
   const known = MOODS.filter((mood) => examples[mood].length > 0)
   const exampleCount = known.reduce((sum, mood) => sum + examples[mood].length, 0)
   let probabilities = described
@@ -141,21 +136,33 @@ export function guessMood(
     })
   }
 
-  const ranked = probabilities.map((p, i) => ({ p, mood: MOODS[i] })).sort((a, b) => b.p - a.p)
+  // How loud the track is also says something about its energy: a nudge towards that level.
+  const loud = loudnessLevel(loudness)
+  probabilities = probabilities.map((p, i) => (1 - LOUDNESS_WEIGHT) * p + LOUDNESS_WEIGHT * closeness(i, loud))
+
+  const ranked = probabilities.map((p, i) => ({ p, i })).sort((a, b) => b.p - a.p)
   const margin = ranked[0].p - ranked[1].p
-  const energetic = described[MOODS.indexOf('Énergique')]
+  // Next to each other (3 or 4?), a hesitation matters less than between far levels.
+  const unsure = margin < UNSURE && Math.abs(ranked[0].i - ranked[1].i) > 1
 
   return {
-    mood: margin < UNSURE ? null : ranked[0].mood,
-    confidence: margin < UNSURE ? 'faible, à confirmer' : margin < SURE ? 'moyenne' : 'élevée',
-    energy: energyLevel(loudness, energetic),
+    mood: unsure ? null : MOODS[ranked[0].i],
+    confidence: unsure ? 'low, please confirm' : margin < SURE ? 'medium' : 'high',
+    energy: ranked[0].i + 1,
   }
 }
 
-// 1 to 5, mostly from how loud the track is (-20 dBFS → 0, -8 dBFS → 1), nudged by how
-// "energetic" CLAP finds it.
-function energyLevel(loudness: number, energetic: number) {
-  const level = Math.min(1, Math.max(0, (loudness + 20) / 12))
-  const value = 0.7 * level + 0.3 * Math.min(1, energetic * 3)
-  return 1 + Math.round(4 * value)
+// Share of the decision given to loudness.
+const LOUDNESS_WEIGHT = 0.25
+
+// 0 to 4, from how loud the track is: -20 dBFS → 0, -8 dBFS → 4.
+function loudnessLevel(loudness: number) {
+  return 4 * Math.min(1, Math.max(0, (loudness + 20) / 12))
+}
+
+// 1 on the level itself, fading over the neighbours; sums to 1 over the levels.
+function closeness(level: number, target: number) {
+  const weights = MOODS.map((_, i) => Math.exp(-((i - target) ** 2)))
+  const total = weights.reduce((a, b) => a + b, 0)
+  return weights[level] / total
 }

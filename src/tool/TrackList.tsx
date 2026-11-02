@@ -4,11 +4,11 @@ import { Spinner } from '../components/ui'
 import { folderSegments, formatTime, MOODS, plural } from './model'
 import type { KeyPrep, KeyTrack } from './useKeyPrep'
 
-const columns = 'grid grid-cols-[32px_minmax(0,1fr)_56px_48px_130px_76px_92px_104px_56px] gap-3'
+const columns = 'grid grid-cols-[32px_minmax(0,1fr)_56px_48px_120px_92px_104px_56px] gap-3'
 const checkbox = 'size-4 cursor-pointer accent-accent'
 
 export function TrackList({ prep }: { prep: KeyPrep }) {
-  const [parent, name] = prep.isSearching ? ['Recherche', `« ${prep.query} »`] : folderSegments(prep.folder)
+  const [parent, name] = prep.isSearching ? ['Search', `“${prep.query}”`] : folderSegments(prep.folder)
   const scroller = useRef<HTMLDivElement>(null)
 
   // ↑ ↓ go through the list without the mouse; the selected row stays in view.
@@ -35,17 +35,17 @@ export function TrackList({ prep }: { prep: KeyPrep }) {
             <span className="font-medium text-subtle">{parent} / </span>
             {name}
           </h1>
-          <p className="mt-0.5 text-[13px] text-subtle">{plural(prep.visible.length, 'morceau', 'morceaux')}</p>
+          <p className="mt-0.5 text-[13px] text-subtle">{plural(prep.visible.length, 'track', 'tracks')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <label className="flex h-[38px] items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 transition-colors focus-within:border-accent">
             <SearchIcon width={14} height={14} className="text-subtle" />
-            <span className="sr-only">Rechercher sur la clé</span>
+            <span className="sr-only">Search the stick</span>
             <input
               type="search"
               value={prep.query}
               onChange={(event) => prep.search(event.target.value)}
-              placeholder="Titre, artiste, ambiance"
+              placeholder="Title, artist, energy"
               className="w-[200px] bg-transparent text-[13px] text-fg outline-none placeholder:text-subtle"
             />
           </label>
@@ -54,7 +54,7 @@ export function TrackList({ prep }: { prep: KeyPrep }) {
             onClick={prep.resetVisibleCues}
             className="h-[38px] cursor-pointer rounded-lg border border-control px-3.5 text-[13px] text-fg transition hover:border-subtle active:scale-[0.98]"
           >
-            Replacer les hot cues
+            Reset hot cues
           </button>
         </div>
       </div>
@@ -71,7 +71,7 @@ export function TrackList({ prep }: { prep: KeyPrep }) {
             <span className="flex justify-center">
               <input
                 type="checkbox"
-                aria-label="Tout sélectionner"
+                aria-label="Select all"
                 checked={prep.allChecked}
                 onChange={prep.toggleAll}
                 className={checkbox}
@@ -79,14 +79,13 @@ export function TrackList({ prep }: { prep: KeyPrep }) {
             </span>
             <div aria-hidden="true" className={`${columns} py-2.5 pr-4 text-[11px] tracking-[0.06em] text-subtle uppercase`}>
               <span>#</span>
-              <span>Titre</span>
+              <span>Title</span>
               <span>BPM</span>
-              <span>Clé</span>
-              <span>Ambiance</span>
-              <span>Énergie</span>
+              <span>Key</span>
+              <span>Energy</span>
               <span>Hot cues</span>
-              <span>État</span>
-              <span>Durée</span>
+              <span>Status</span>
+              <span>Length</span>
             </div>
           </div>
 
@@ -96,7 +95,7 @@ export function TrackList({ prep }: { prep: KeyPrep }) {
 
           {prep.visible.length === 0 && (
             <p className="px-4 py-8 text-center text-sm text-subtle">
-              {prep.isSearching ? `Aucun morceau ne correspond à « ${prep.query} ».` : 'Ce dossier est vide.'}
+              {prep.isSearching ? `No track matches “${prep.query}”.` : 'This folder is empty.'}
             </p>
           )}
         </div>
@@ -108,15 +107,15 @@ export function TrackList({ prep }: { prep: KeyPrep }) {
 function SelectionBar({ prep }: { prep: KeyPrep }) {
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-line-strong bg-surface px-3 py-2 text-[13px] motion-safe:animate-rise">
-      <span className="font-medium">{plural(prep.checked.length, 'morceau sélectionné', 'morceaux sélectionnés')}</span>
+      <span className="font-medium">{plural(prep.checked.length, 'track selected', 'tracks selected')}</span>
       <label className="flex items-center gap-2 text-muted">
-        Appliquer l’ambiance
+        Set energy
         <select
           value=""
           onChange={(event) => prep.moodForChecked(event.target.value)}
           className="h-8 cursor-pointer rounded-md border border-control bg-surface px-2 text-[13px] text-fg"
         >
-          <option value="">Choisir…</option>
+          <option value="">Choose…</option>
           {MOODS.map((mood) => (
             <option key={mood} value={mood}>
               {mood}
@@ -130,7 +129,7 @@ function SelectionBar({ prep }: { prep: KeyPrep }) {
         onClick={prep.clearChecked}
         className="h-8 cursor-pointer rounded-md px-3 text-[13px] text-muted transition-colors hover:text-fg"
       >
-        Désélectionner
+        Clear selection
       </button>
     </div>
   )
@@ -138,15 +137,15 @@ function SelectionBar({ prep }: { prep: KeyPrep }) {
 
 function trackState(track: KeyTrack, saved: boolean) {
   // The analysis first: a track being analysed says so even if its mood is already known.
-  if (track.analysis === 'running') return { label: 'Analyse…', text: 'text-fg', dot: null }
-  if (track.analysis === 'failed') return { label: 'Illisible', text: 'text-accent', dot: 'bg-accent' }
+  if (track.analysis === 'running') return { label: 'Analysing…', text: 'text-fg', dot: null }
+  if (track.analysis === 'failed') return { label: 'Unreadable', text: 'text-accent', dot: 'bg-accent' }
   if (!track.mood) {
-    if (track.analysis === 'pending') return { label: 'En attente', text: 'text-subtle', dot: 'bg-idle' }
-    return { label: 'À confirmer', text: 'text-accent', dot: 'bg-fg' }
+    if (track.analysis === 'pending') return { label: 'Queued', text: 'text-subtle', dot: 'bg-idle' }
+    return { label: 'To confirm', text: 'text-accent', dot: 'bg-fg' }
   }
   return saved
-    ? { label: 'Sur la clé', text: 'text-muted', dot: 'bg-subtle' }
-    : { label: 'Prêt', text: 'text-muted', dot: 'bg-accent' }
+    ? { label: 'On the stick', text: 'text-muted', dot: 'bg-subtle' }
+    : { label: 'Ready', text: 'text-muted', dot: 'bg-accent' }
 }
 
 function TrackRow({ prep, track, index }: { prep: KeyPrep; track: KeyTrack; index: number }) {
@@ -161,7 +160,7 @@ function TrackRow({ prep, track, index }: { prep: KeyPrep; track: KeyTrack; inde
       <span className="flex justify-center">
         <input
           type="checkbox"
-          aria-label={`Sélectionner ${track.title}`}
+          aria-label={`Select ${track.title}`}
           checked={isChecked}
           onChange={() => prep.toggleChecked(track.id)}
           className={checkbox}
@@ -184,17 +183,7 @@ function TrackRow({ prep, track, index }: { prep: KeyPrep; track: KeyTrack; inde
         <span
           className={`justify-self-start rounded-full border px-2.5 py-0.5 text-xs ${track.mood ? 'border-control text-data' : track.analysis === 'done' ? 'border-accent text-accent' : 'border-line-strong text-subtle'}`}
         >
-          {track.mood ?? (track.analysis === 'done' ? 'À confirmer' : '—')}
-        </span>
-        <span className="flex gap-[3px]">
-          <span className="sr-only">Énergie {track.energy} sur 5</span>
-          {[1, 2, 3, 4, 5].map((level) => (
-            <span
-              key={level}
-              aria-hidden="true"
-              className={`size-2.5 rounded-[2px] ${level <= track.energy ? 'bg-data' : 'bg-line-strong'}`}
-            />
-          ))}
+          {track.mood ?? (track.analysis === 'done' ? 'To confirm' : '—')}
         </span>
         <span className="flex gap-0.5">
           <span className="sr-only">{plural(cueCount, 'hot cue', 'hot cues')}</span>

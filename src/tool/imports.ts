@@ -1,7 +1,7 @@
 // What was already set up for the key's tracks, elsewhere: in rekordbox (its USB export, read
 // by CDJs) or in a rekordbox XML (the one Cue writes in CUE/, or a collection exported from
 // rekordbox). Read only: Cue never touches these files.
-import { cueLetter, MOODS, PAD_COUNT, sectionAt, type CueSlots, type Mood, type Track } from './model'
+import { cueLetter, PAD_COUNT, sectionAt, toMood, type CueSlots, type Mood, type Track } from './model'
 import { camelot } from './rhythm'
 import type { KeyFile } from './usbKey'
 
@@ -193,7 +193,8 @@ export function parseRekordboxXml(text: string, at: number): XmlTrack[] {
     const tempoBpm = tempo ? number('Bpm', tempo) : undefined
     const position = tempo ? (number('Battito', tempo) ?? 1) : 1
     const comments = node.getAttribute('Comments') ?? ''
-    const mood = MOODS.find((m) => comments.includes(`Ambiance : ${m}`))
+    // Cue writes "Energy: 4 · Build"; earlier exports "Énergie : …" or "Ambiance : Sombre".
+    const mood = toMood(/(?:Energy|Énergie|Ambiance) ?: (\d · [A-Za-z-]+|[^·]+)/.exec(comments)?.[1]?.trim() ?? '')
     const bpm = number('AverageBpm') || tempoBpm
 
     return {

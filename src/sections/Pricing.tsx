@@ -12,33 +12,33 @@ type Plan = {
 
 const plans: Plan[] = [
   {
-    name: 'Découverte',
-    tagline: 'Pour essayer sur une clé.',
+    name: 'Starter',
+    tagline: 'To try it on one stick.',
     price: '0 €',
-    features: ['50 morceaux par mois', 'Rangement par BPM et ambiance', 'Hot cues automatiques'],
-    cta: 'Commencer',
+    features: ['50 tracks per month', 'Sorting by BPM and energy level', 'Automatic hot cues'],
+    cta: 'Get started',
   },
   {
     name: 'DJ',
-    tagline: 'Pour préparer chaque set.',
+    tagline: 'To prep every set.',
     price: '7 €',
-    period: '/ mois',
+    period: '/ month',
     features: [
-      'Morceaux illimités',
-      'Ordre de rangement au choix',
-      'Ambiances et hot cues modifiables',
-      'Plusieurs clés',
+      'Unlimited tracks',
+      'Choose your sort order',
+      'Editable energy levels and hot cues',
+      'Multiple sticks',
     ],
-    cta: 'Choisir DJ',
+    cta: 'Choose DJ',
     featured: true,
   },
   {
-    name: 'Résident',
-    tagline: 'La formule DJ, à l’année.',
+    name: 'Resident',
+    tagline: 'The DJ plan, billed yearly.',
     price: '70 €',
-    period: '/ an',
-    features: ['Tout ce qu’offre la formule DJ', '2 mois offerts'],
-    cta: 'Choisir Résident',
+    period: '/ year',
+    features: ['Everything in the DJ plan', '2 months free'],
+    cta: 'Choose Resident',
   },
 ]
 
@@ -46,8 +46,8 @@ export function Pricing() {
   return (
     <Section id="tarifs" className="py-28">
       <SectionHeader
-        title="Tarifs"
-        intro="Commencez gratuitement, passez à la formule supérieure quand votre bibliothèque grandit."
+        title="Pricing"
+        intro="Start free, then upgrade as your library grows."
       />
 
       <div data-reveal-group className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
@@ -74,7 +74,7 @@ function PlanCard({ plan, className }: { plan: Plan; className: string }) {
           <h3 className="text-lg font-semibold">{plan.name}</h3>
           {plan.featured && (
             <span className="rounded-full bg-accent px-2.5 py-[3px] text-xs font-semibold text-canvas">
-              Recommandé
+              Recommended
             </span>
           )}
         </div>

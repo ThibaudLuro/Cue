@@ -13,25 +13,25 @@ export function CallToAction() {
         <Glow token="--color-grad-to" strength={10.5} className="-right-[160px] -bottom-[320px] size-[640px]" />
         <div className="relative flex flex-col items-start gap-7">
           <h2 className="max-w-[820px] text-[clamp(40px,6vw,72px)] leading-[1.02] font-semibold tracking-[-0.04em]">
-            Préparez votre
+            Prep your
             <br />
-            <span className="text-gradient-brand">prochaine clé.</span>
+            <span className="text-gradient-brand">next stick.</span>
           </h2>
           <p className="max-w-[520px] text-lg text-data">
-            Branchez-la, Cue s’occupe du rangement et des repères. Sans carte bancaire.
+            Plug it in, and Cue handles the sorting and the cues. No credit card needed.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
               to="/app"
               className="flex h-12 items-center rounded-lg bg-gradient-brand px-6 text-[15px] font-semibold text-canvas transition hover:opacity-90 active:scale-[0.98]"
             >
-              Connecter ma clé
+              Connect my stick
             </Link>
             <a
               href="#tarifs"
               className="flex h-12 items-center rounded-lg border border-idle bg-canvas/40 px-6 text-[15px] text-fg transition hover:border-subtle active:scale-[0.98]"
             >
-              Voir les tarifs
+              See pricing
             </a>
           </div>
         </div>

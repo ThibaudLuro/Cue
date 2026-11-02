@@ -19,7 +19,7 @@ export function CuePads({ prep }: { prep: KeyPrep }) {
         <Overline>
           Hot cues · {cueCount}/{PAD_COUNT} · {cueOrigin(track)}
         </Overline>
-        <span className="text-xs text-subtle">Pad libre : pose un cue à la lecture · double-clic sur la forme d’onde · glissez les repères pour les déplacer</span>
+        <span className="text-xs text-subtle">Empty pad: cue at the playhead · double-click the waveform · drag markers to move them</span>
       </div>
 
       <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-2">
@@ -30,7 +30,7 @@ export function CuePads({ prep }: { prep: KeyPrep }) {
               <button
                 key={i}
                 type="button"
-                aria-label={`Ajouter un hot cue sur le pad ${letter}`}
+                aria-label={`Add a hot cue on pad ${letter}`}
                 onClick={() => prep.addCue(i)}
                 className="flex min-h-16 cursor-pointer flex-col justify-between gap-1.5 rounded-lg border border-dashed border-control p-2.5 text-left transition-colors hover:border-subtle"
               >
@@ -75,7 +75,7 @@ export function CuePads({ prep }: { prep: KeyPrep }) {
             {cueLetter(prep.activeCue)}
           </span>
           <label className="flex items-center gap-2 text-[13px] text-muted">
-            Nom
+            Name
             <input
               type="text"
               value={active.label}
@@ -85,30 +85,30 @@ export function CuePads({ prep }: { prep: KeyPrep }) {
           </label>
           <span className="px-2 text-[13px] text-data tabular-nums">
             {formatCueTime(active.position * track.duration)}
-            {grid && <span className="text-subtle"> · mesure {grid.bar}.{grid.beat}</span>}
+            {grid && <span className="text-subtle"> · bar {grid.bar}.{grid.beat}</span>}
           </span>
-          <div role="group" aria-label="Déplacer le hot cue" className="flex gap-1">
-            <button type="button" onClick={() => prep.nudgeCue(-4)} className={smallButton} title="Reculer d’une mesure">
-              − 1 mes.
+          <div role="group" aria-label="Move the hot cue" className="flex gap-1">
+            <button type="button" onClick={() => prep.nudgeCue(-4)} className={smallButton} title="Back one bar">
+              − 1 bar
             </button>
-            <button type="button" onClick={() => prep.nudgeCue(-1)} className={smallButton} title="Reculer d’un temps">
-              − 1 tps
+            <button type="button" onClick={() => prep.nudgeCue(-1)} className={smallButton} title="Back one beat">
+              − 1 beat
             </button>
-            <button type="button" onClick={() => prep.nudgeCue(1)} className={smallButton} title="Avancer d’un temps">
-              + 1 tps
+            <button type="button" onClick={() => prep.nudgeCue(1)} className={smallButton} title="Forward one beat">
+              + 1 beat
             </button>
-            <button type="button" onClick={() => prep.nudgeCue(4)} className={smallButton} title="Avancer d’une mesure">
-              + 1 mes.
+            <button type="button" onClick={() => prep.nudgeCue(4)} className={smallButton} title="Forward one bar">
+              + 1 bar
             </button>
           </div>
           <button
             type="button"
             onClick={prep.cueToPlayhead}
             disabled={!listened}
-            title={listened ? 'Placer le cue là où en est la lecture' : 'Lancez la lecture pour placer le cue à la volée'}
+            title={listened ? 'Move the cue to the playhead' : 'Start playback to drop the cue on the fly'}
             className={`${smallButton} disabled:cursor-not-allowed disabled:opacity-50`}
           >
-            Ici
+            Here
           </button>
           <div className="flex-1" />
           <button
@@ -116,7 +116,7 @@ export function CuePads({ prep }: { prep: KeyPrep }) {
             onClick={prep.deleteCue}
             className="h-[34px] cursor-pointer rounded-md px-2.5 text-[13px] text-danger transition-opacity hover:opacity-80"
           >
-            Supprimer
+            Delete
           </button>
         </div>
       )}

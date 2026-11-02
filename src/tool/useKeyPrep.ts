@@ -74,6 +74,7 @@ export function useKeyPrep(key: UsbKey) {
     const name = names[file.path]
     const found = imported.tracks[file.path]
     const sections = analysis.sections[file.path] ?? []
+    const mood = correction ?? found?.mood ?? guess?.mood ?? null
     const base = {
       ...t,
       title: name?.title ?? found?.title ?? t.title,
@@ -84,9 +85,10 @@ export function useKeyPrep(key: UsbKey) {
       beat: found?.beat ?? rhythm?.beat ?? null,
       // The intro's cue sits on the first downbeat.
       downbeat: found?.downbeat ?? (sections[0] && decoded ? sections[0].cue * decoded : null),
-      mood: correction ?? found?.mood ?? guess?.mood ?? null,
-      energy: guess?.energy ?? 0,
-      confidence: correction ? 'choisie par vous' : found?.mood ? 'reprise de la clé' : (guess?.confidence ?? t.confidence),
+      mood,
+      // The level is the energy: corrected or found on the key, it wins over the guess.
+      energy: mood ? MOODS.indexOf(mood) + 1 : (guess?.energy ?? 0),
+      confidence: correction ? 'set by you' : found?.mood ? 'from the stick' : (guess?.confidence ?? t.confidence),
       analysis: analysis.state(file.path),
       // Cues found on the key for this track, whether shown or not.
       keyCues: found?.cues?.length ? found.source : null,
@@ -131,7 +133,7 @@ export function useKeyPrep(key: UsbKey) {
 
   function placeCue(index: number, position: number, snap: boolean) {
     const spot = snap ? snapToGrid(track, position) : Math.min(0.999, Math.max(0, position))
-    const label = sectionAt(track, spot) ?? 'Repère'
+    const label = sectionAt(track, spot) ?? 'Cue'
     setTrackCues(track.cues.map((cue, i) => (i === index ? { label, position: spot } : cue)))
     setCueIndex(index)
   }
@@ -277,7 +279,7 @@ export function useKeyPrep(key: UsbKey) {
       setToast(false)
       setSaveError(null)
       if (!location) {
-        setSaveError('Choisissez la lettre de la clé (carte de la clé, à gauche) pour que rekordbox retrouve les morceaux.')
+        setSaveError('Pick the stick’s drive letter (stick card, on the left) so rekordbox can find the tracks.')
         return
       }
       setProgress(0)
@@ -316,7 +318,7 @@ export function useKeyPrep(key: UsbKey) {
         setToast(true)
       } catch {
         setStatus('pending')
-        setSaveError('L’écriture sur la clé a échoué. Vérifiez qu’elle est branchée et n’est pas verrouillée en écriture.')
+        setSaveError('Writing to the stick failed. Check that it is plugged in and not write-protected.')
       }
     },
     closeToast() {

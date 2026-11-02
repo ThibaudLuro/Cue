@@ -5,27 +5,27 @@ import { tint } from '../lib/tint'
 import type { EnergyLevel } from '../lib/waveform'
 
 const features = [
-  { label: 'BPM', text: 'Dossiers par plage de tempo, du warm-up au peak time.' },
-  { label: 'AMBIANCE', text: 'Sous-dossiers par ambiance musicale : sombre, solaire, énergique…' },
-  { label: 'HOT CUES', text: 'Placés automatiquement sur l’intro, les montées, les drops, les breaks et l’outro.' },
+  { label: 'BPM', text: 'Folders by tempo range, from warm-up to peak time.' },
+  { label: 'ENERGY', text: 'Subfolders by energy level, from low-key openers to peak-time bangers.' },
+  { label: 'HOT CUES', text: 'Placed automatically on the intro, build-ups, drops, breaks and outro.' },
 ]
 
 const benefits = [
   {
-    title: 'Lecture directe',
-    text: 'Cue travaille sur les morceaux déjà présents sur la clé. Rien à importer, rien à recopier.',
+    title: 'Reads in place',
+    text: 'Cue works on the tracks already on your stick. Nothing to import, nothing to copy over.',
     token: '--color-grad-from',
     dot: 'bg-grad-from',
   },
   {
-    title: 'Rangement au choix',
-    text: 'Classez par BPM puis par ambiance, ou l’inverse, selon votre façon de jouer.',
+    title: 'Sort your way',
+    text: 'Sort by BPM then energy level, or the other way round, to match how you play.',
     token: '--color-grad-via',
     dot: 'bg-grad-via',
   },
   {
-    title: 'Vous gardez la main',
-    text: 'Changez l’ambiance d’un morceau ou déplacez un hot cue : la clé est mise à jour.',
+    title: 'You stay in control',
+    text: 'Change a track’s energy level or move a hot cue: the stick is updated.',
     token: '--color-grad-to',
     dot: 'bg-grad-to',
   },
@@ -43,12 +43,12 @@ export function Features() {
       <SectionHeader
         title={
           <>
-            Rangée, repérée,
+            Sorted, cued,
             <br />
-            prête à jouer.
+            ready to play.
           </>
         }
-        intro="Cue prend en charge la partie fastidieuse de la préparation : le tri et les repères. Vous validez chaque choix."
+        intro="Cue takes care of the tedious part of prep: sorting and cueing. You sign off on every choice."
       />
 
       <article
@@ -61,10 +61,10 @@ export function Features() {
           </span>
           <div>
             <h3 className="mb-2.5 text-[clamp(26px,3vw,32px)] font-semibold tracking-[-0.02em]">
-              Préparation de clé USB
+              USB stick prep
             </h3>
             <p className="max-w-[460px] text-muted">
-              De vos fichiers en vrac à une clé rangée et prête à jouer, sans passer des heures dans votre logiciel.
+              From a jumble of files to a sorted stick that’s ready to play, without spending hours in your DJ software.
             </p>
           </div>
           <ul className="flex flex-col border-t border-line">
@@ -79,7 +79,7 @@ export function Features() {
             href="#essayer"
             className="flex h-11 items-center self-start rounded-lg bg-accent px-5.5 text-[15px] font-semibold text-canvas transition hover:opacity-90 active:scale-[0.98]"
           >
-            Préparer ma clé
+            Prep my stick
           </a>
         </div>
 

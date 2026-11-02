@@ -20,21 +20,21 @@ const tableColumns = 'grid grid-cols-[minmax(0,1fr)_64px_48px_150px_80px] gap-3'
 
 export function UsbPreview() {
   return (
-    <section aria-label="Aperçu d’une clé USB préparée" className="relative mx-auto max-w-[1200px] px-6 pb-32">
+    <section aria-label="Preview of a prepped USB stick" className="relative mx-auto max-w-[1200px] px-6 pb-32">
       <div data-reveal className="rounded-[20px] bg-gradient-frame p-px [--reveal-delay:250ms]">
         <div className="overflow-hidden rounded-[19px] bg-surface/95">
           <div className="flex flex-wrap items-center gap-4 border-b border-line px-5 py-4 text-[13px] tabular-nums">
-            <span>USB · SET_SAMEDI</span>
-            <span className="text-subtle">60 morceaux</span>
+            <span>USB · SATURDAY_SET</span>
+            <span className="text-subtle">60 tracks</span>
             <span className="flex items-center gap-2 text-muted">
               <Dot />
-              Prête à enregistrer
+              Ready to save
             </span>
           </div>
 
           <div className="flex flex-col md:flex-row">
             <ul
-              aria-label="Dossiers de la clé"
+              aria-label="Folders on the stick"
               className="border-b border-line px-3 py-4 md:w-[260px] md:shrink-0 md:border-r md:border-b-0"
             >
               {folders.map((folder) => (
@@ -61,7 +61,7 @@ export function UsbPreview() {
                 <div className="flex flex-wrap gap-1.5">
                   <Tag>124 BPM</Tag>
                   <Tag>9A</Tag>
-                  <MoodChip>Sombre</MoodChip>
+                  <MoodChip>4 · Build</MoodChip>
                 </div>
               </div>
 
@@ -90,7 +90,7 @@ export function UsbPreview() {
                   </div>
                 ))}
               </div>
-              <div aria-label="Structure du morceau" className="mt-2 flex border-t border-line-strong">
+              <div aria-label="Track structure" className="mt-2 flex border-t border-line-strong">
                 {trackParts.map((part) => (
                   <span
                     key={part.cue}
@@ -103,15 +103,15 @@ export function UsbPreview() {
               </div>
 
               <div className="mt-6 overflow-x-auto">
-                <div role="table" aria-label="Morceaux du dossier" className="min-w-[560px]">
+                <div role="table" aria-label="Tracks in this folder" className="min-w-[560px]">
                   <div
                     role="row"
                     className={`${tableColumns} py-2.5 text-xs tracking-[0.06em] text-subtle uppercase`}
                   >
-                    <span role="columnheader">Titre</span>
+                    <span role="columnheader">Title</span>
                     <span role="columnheader">BPM</span>
-                    <span role="columnheader">Clé</span>
-                    <span role="columnheader">Ambiance</span>
+                    <span role="columnheader">Key</span>
+                    <span role="columnheader">Energy</span>
                     <span role="columnheader">Hot cues</span>
                   </div>
                   {tracks.map((track, i) => (

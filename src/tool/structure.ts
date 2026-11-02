@@ -130,9 +130,9 @@ export function detectSections(
     if (i === 0) return 'Intro'
     if (i === parts.length - 1) return 'Outro'
     // A build-up is short; a long rise is still a break or a groove.
-    if (next && isDrop(next) && p.rising && p.to - p.from <= MIN_BARS * 2) return 'Montée'
+    if (next && isDrop(next) && p.rising && p.to - p.from <= MIN_BARS * 2) return 'Build-up'
     if (!hasKick(p)) return 'Break'
-    return next && isDrop(next) ? 'Montée' : 'Groove'
+    return next && isDrop(next) ? 'Build-up' : 'Groove'
   })
 
   // Neighbours with the same role are one part; repeats get numbered: Drop, Drop 2…

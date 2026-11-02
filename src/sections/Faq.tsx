@@ -2,35 +2,35 @@ import { Section, SectionTitle } from '../components/Section'
 
 const questions = [
   {
-    q: 'Mes morceaux sont-ils envoyés sur internet ?',
-    a: 'Non : Cue lit les fichiers directement sur votre clé, rien n’est importé sur le site. L’analyse se fait dans votre navigateur, sur votre ordinateur : vos morceaux ne quittent jamais la clé.',
+    q: 'Are my tracks uploaded anywhere?',
+    a: 'No. Cue reads the files straight from your stick, and nothing is uploaded to the site. Analysis runs in your browser, on your computer: your tracks never leave the stick.',
   },
   {
-    q: 'Mes dossiers actuels vont-ils être effacés ?',
-    a: 'Rien n’est écrit sur la clé avant que vous cliquiez sur « Enregistrer sur la clé ». Vous voyez le nouveau rangement avant de valider, et Cue garde une copie de votre organisation d’origine pour revenir en arrière à tout moment.',
+    q: 'Will my current folders be erased?',
+    a: 'Nothing is written to the stick until you click “Save to the stick”. You see the new layout before confirming, and Cue keeps a copy of your original setup so you can roll back at any time.',
   },
   {
-    q: 'Puis-je corriger une ambiance ou un hot cue ?',
-    a: 'Oui. Changez l’ambiance d’un morceau et il change de dossier ; déplacez ou renommez un hot cue directement sur la forme d’onde.',
+    q: 'Can I fix an energy level or a hot cue?',
+    a: 'Yes. Change a track’s energy level and it moves to the matching folder; move or rename a hot cue right on the waveform.',
   },
   {
-    q: 'Quels logiciels et lecteurs lisent la clé ?',
-    a: 'La clé préparée s’ouvre dans rekordbox et Engine DJ, et se lit directement sur les lecteurs CDJ et XDJ : vos dossiers et vos hot cues sont déjà là.',
+    q: 'Which software and players can read the stick?',
+    a: 'The prepped stick opens in rekordbox and Engine DJ, and plays straight on CDJ and XDJ players: your folders and hot cues are already there.',
   },
   {
-    q: 'Quels navigateurs puis-je utiliser ?',
-    a: 'Cue a besoin d’accéder à votre clé depuis le navigateur : Chrome, Edge ou Opera, sur ordinateur (Windows, macOS ou Linux).',
+    q: 'Which browsers can I use?',
+    a: 'Cue needs to access your stick from the browser: Chrome, Edge or Opera, on desktop (Windows, macOS or Linux).',
   },
   {
-    q: 'Quels formats audio sont pris en charge ?',
-    a: 'MP3, WAV, FLAC et AIFF.',
+    q: 'Which audio formats are supported?',
+    a: 'MP3, WAV, FLAC and AIFF.',
   },
 ]
 
 export function Faq() {
   return (
     <Section id="faq" revealGroup className="flex flex-wrap gap-16 py-28">
-      <SectionTitle className="flex-[1_1_280px]">Questions fréquentes</SectionTitle>
+      <SectionTitle className="flex-[1_1_280px]">Frequently asked questions</SectionTitle>
       <div className="min-w-0 flex-[999_1_560px] border-t border-line-strong">
         {questions.map((item) => (
           <details key={item.q} className="group border-b border-line-strong">
