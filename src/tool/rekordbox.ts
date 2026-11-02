@@ -26,14 +26,6 @@ export type ExportPlaylist = { folder: string; name: string; paths: string[] }
 
 const KINDS: Record<string, string> = { mp3: 'MP3 File', wav: 'WAV File', flac: 'FLAC File', aif: 'AIFF File', aiff: 'AIFF File' }
 
-// rekordbox stores keys in classic notation.
-const CLASSIC: Record<string, string> = {
-  '1A': 'Abm', '2A': 'Ebm', '3A': 'Bbm', '4A': 'Fm', '5A': 'Cm', '6A': 'Gm',
-  '7A': 'Dm', '8A': 'Am', '9A': 'Em', '10A': 'Bm', '11A': 'F#m', '12A': 'Dbm',
-  '1B': 'B', '2B': 'F#', '3B': 'Db', '4B': 'Ab', '5B': 'Eb', '6B': 'Bb',
-  '7B': 'F', '8B': 'C', '9B': 'G', '10B': 'D', '11B': 'A', '12B': 'E',
-}
-
 // Hot cue colours on the CDJ, by kind of part.
 const CUE_COLOURS: [RegExp, [number, number, number]][] = [
   [/^Drop/, [255, 106, 0]],
@@ -86,7 +78,8 @@ function trackXml(track: ExportTrack, id: number, root: string) {
     Size: track.size,
     TotalTime: Math.round(track.duration),
     AverageBpm: track.bpm ? track.bpm.toFixed(2) : undefined,
-    Tonality: track.key ? CLASSIC[track.key] : undefined,
+    // Camelot ("3A"), as shown in Cue.
+    Tonality: track.key ?? undefined,
     Comments: comments,
     Location: location(root, track.path),
   })
