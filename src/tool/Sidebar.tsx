@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import { FolderIcon, RefreshIcon, UsbIcon } from '../components/icons'
 import { Dot } from '../components/ui'
-import { formatBytes, plural, UNSORTED, type Grouping } from './model'
+import { ALL_TRACKS, formatBytes, plural, UNSORTED, type Grouping } from './model'
 import { Overline } from './Overline'
 import type { KeyPrep } from './useKeyPrep'
 
@@ -47,6 +47,7 @@ export function Sidebar({ prep }: { prep: KeyPrep }) {
 
         <nav aria-label="Folders" className="flex flex-1 flex-col gap-0.5">
           <Overline className="mb-1.5">Folders</Overline>
+          <AllTracksLink prep={prep} />
           {prep.tree.map((group) => (
             <Fragment key={group.label}>
               <div className="flex items-center gap-2 px-2 pt-2.5 pb-1 text-[13px] text-data">
@@ -211,5 +212,27 @@ function KeyLocation({ prep }: { prep: KeyPrep }) {
         className="h-8 rounded-md border border-accent bg-canvas px-2 text-[13px] text-fg outline-none focus:border-accent"
       />
     </label>
+  )
+}
+
+// The whole library in one list, above the folders.
+function AllTracksLink({ prep }: { prep: KeyPrep }) {
+  const current = !prep.isSearching && prep.folder === ALL_TRACKS
+  return (
+    <button
+      type="button"
+      aria-current={current ? 'true' : undefined}
+      onClick={() => prep.openFolder(ALL_TRACKS)}
+      className={`mb-1 flex min-h-[34px] w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left text-[13px] font-medium transition-colors ${current ? 'bg-line text-fg' : 'text-data hover:text-fg'}`}
+    >
+      <span aria-hidden="true" className="grid size-3.5 grid-cols-2 gap-px">
+        <span className="rounded-[1px] bg-current" />
+        <span className="rounded-[1px] bg-current" />
+        <span className="rounded-[1px] bg-current" />
+        <span className="rounded-[1px] bg-current" />
+      </span>
+      <span className="flex-1">All tracks</span>
+      <span className="text-[11px] text-subtle tabular-nums">{prep.tracks.length}</span>
+    </button>
   )
 }

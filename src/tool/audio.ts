@@ -62,8 +62,8 @@ async function decode(bytes: ArrayBuffer, name: string, rate = CLAP_RATE): Promi
 
 // ---- Waveform
 
-// Drawn 160 bars wide; kept 3 times finer for a later zoom.
-export const WAVE_POINTS = 480
+// Fine enough to zoom in: 160 bars still show at 32× (about 10 points a second on an 8 min track).
+export const WAVE_POINTS = 5120
 // Enough to follow the level, cheap to decode.
 const WAVE_RATE = 8000
 

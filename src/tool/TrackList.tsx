@@ -1,5 +1,5 @@
 import { useRef, type KeyboardEvent } from 'react'
-import { SearchIcon } from '../components/icons'
+import { RefreshIcon, SearchIcon } from '../components/icons'
 import { Spinner } from '../components/ui'
 import { folderSegments, formatTime, MOODS, plural } from './model'
 import type { KeyPrep, KeyTrack } from './useKeyPrep'
@@ -67,7 +67,7 @@ export function TrackList({ prep }: { prep: KeyPrep }) {
         className="relative overflow-auto rounded-xl border border-line bg-surface md:min-h-0 md:flex-1"
       >
         <div className="min-w-[900px]">
-          <div className="sticky top-0 z-10 grid grid-cols-[44px_minmax(0,1fr)] items-center border-b border-line bg-surface">
+          <div className="sticky top-0 z-10 grid grid-cols-[44px_minmax(0,1fr)_40px] items-center border-b border-line bg-surface">
             <span className="flex justify-center">
               <input
                 type="checkbox"
@@ -87,6 +87,7 @@ export function TrackList({ prep }: { prep: KeyPrep }) {
               <span>Status</span>
               <span>Length</span>
             </div>
+            <span aria-hidden="true" />
           </div>
 
           {prep.visible.map((track, i) => (
@@ -123,6 +124,14 @@ function SelectionBar({ prep }: { prep: KeyPrep }) {
           ))}
         </select>
       </label>
+      <button
+        type="button"
+        onClick={prep.reanalyseChecked}
+        className="flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-control px-3 text-[13px] text-fg transition hover:border-subtle"
+      >
+        <RefreshIcon width={14} height={14} />
+        Re-analyse
+      </button>
       <div className="flex-1" />
       <button
         type="button"
@@ -139,10 +148,8 @@ function trackState(track: KeyTrack, saved: boolean) {
   // The analysis first: a track being analysed says so even if its mood is already known.
   if (track.analysis === 'running') return { label: 'Analysing…', text: 'text-fg', dot: null }
   if (track.analysis === 'failed') return { label: 'Unreadable', text: 'text-accent', dot: 'bg-accent' }
-  if (!track.mood) {
-    if (track.analysis === 'pending') return { label: 'Queued', text: 'text-subtle', dot: 'bg-idle' }
-    return { label: 'To confirm', text: 'text-accent', dot: 'bg-fg' }
-  }
+  if (track.analysis === 'pending') return { label: 'Queued', text: 'text-subtle', dot: 'bg-idle' }
+  if (!track.mood) return { label: 'To confirm', text: 'text-accent', dot: 'bg-fg' }
   return saved
     ? { label: 'On the stick', text: 'text-muted', dot: 'bg-subtle' }
     : { label: 'Ready', text: 'text-muted', dot: 'bg-accent' }
@@ -156,7 +163,7 @@ function TrackRow({ prep, track, index }: { prep: KeyPrep; track: KeyTrack; inde
   const background = current ? 'bg-row' : isChecked ? 'bg-row-checked' : 'hover:bg-row-checked'
 
   return (
-    <div className={`grid grid-cols-[44px_minmax(0,1fr)] items-center border-t border-row transition-colors ${background}`}>
+    <div className={`grid grid-cols-[44px_minmax(0,1fr)_40px] items-center border-t border-row transition-colors ${background}`}>
       <span className="flex justify-center">
         <input
           type="checkbox"
@@ -181,9 +188,9 @@ function TrackRow({ prep, track, index }: { prep: KeyPrep; track: KeyTrack; inde
         <span className="text-[13px] text-data tabular-nums">{track.bpm ?? '—'}</span>
         <span className="text-[13px] text-data tabular-nums">{track.key}</span>
         <span
-          className={`justify-self-start rounded-full border px-2.5 py-0.5 text-xs ${track.mood ? 'border-control text-data' : track.analysis === 'done' ? 'border-accent text-accent' : 'border-line-strong text-subtle'}`}
+          className={`justify-self-start rounded-full border px-2.5 py-0.5 text-xs ${track.mood ? 'border-control text-data' : track.analysis === 'done' || track.analysis === 'kept' ? 'border-accent text-accent' : 'border-line-strong text-subtle'}`}
         >
-          {track.mood ?? (track.analysis === 'done' ? 'To confirm' : '—')}
+          {track.mood ?? (track.analysis === 'done' || track.analysis === 'kept' ? 'To confirm' : '—')}
         </span>
         <span className="flex gap-0.5">
           <span className="sr-only">{plural(cueCount, 'hot cue', 'hot cues')}</span>
@@ -205,6 +212,24 @@ function TrackRow({ prep, track, index }: { prep: KeyPrep; track: KeyTrack; inde
         </span>
         <span className="text-xs text-subtle tabular-nums">{track.duration ? formatTime(track.duration) : '—'}</span>
       </button>
+      <ReanalyseButton prep={prep} track={track} />
     </div>
+  )
+}
+
+// A fresh analysis of one track, replacing what the key had for it.
+function ReanalyseButton({ prep, track }: { prep: KeyPrep; track: KeyTrack }) {
+  const busy = track.analysis === 'running' || track.analysis === 'pending'
+  return (
+    <button
+      type="button"
+      onClick={() => prep.reanalyse([track.id])}
+      disabled={busy}
+      aria-label={`Re-analyse ${track.title}`}
+      title={busy ? 'Analysis queued' : 'Re-analyse: BPM, key, energy, sections and hot cues'}
+      className="flex size-8 cursor-pointer items-center justify-center justify-self-center rounded-md text-subtle transition-colors hover:bg-line hover:text-fg disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent"
+    >
+      <RefreshIcon width={14} height={14} className={track.analysis === 'running' ? 'motion-safe:animate-spin' : ''} />
+    </button>
   )
 }

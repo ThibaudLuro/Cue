@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { idbGet, idbSet } from '../lib/idb'
-import { readWave, type Wave } from './audio'
+import { readWave, WAVE_POINTS, type Wave } from './audio'
 import { fileKey, type KeyFile } from './usbKey'
 
 // Waveforms already drawn in this visit.
@@ -20,7 +20,8 @@ export function useWaveform(file: KeyFile | undefined) {
     ;(async () => {
       try {
         let wave = await idbGet<Wave>('waves', key)
-        if (!wave) {
+        // Saved before the zoom existed: too coarse, read again once.
+        if (!wave || wave.peaks.length < WAVE_POINTS) {
           wave = await readWave(file.handle)
           idbSet('waves', key, wave)
         }

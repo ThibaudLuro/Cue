@@ -74,6 +74,8 @@ export type CueSlots = (Cue | null)[]
 
 export const PAD_COUNT = 8
 export const UNSORTED = 'unsorted'
+// Not a folder of the stick: the whole library in one list.
+export const ALL_TRACKS = 'all'
 
 // A file read on the key, not analysed yet: what the file name tells is all we know.
 // "Artist - Title.mp3" is the usual naming; otherwise the folder stands in for the artist.
@@ -117,6 +119,7 @@ export function folderOf(track: Pick<Track, 'bpm' | 'mood'>, grouping: Grouping)
 }
 
 export function folderSegments(folder: string): [string, string] {
+  if (folder === ALL_TRACKS) return ['Library', 'All tracks']
   if (folder === UNSORTED) return ['Unsorted', 'Energy to confirm']
   const [primary, secondary] = folder.split('|')
   return [primary, secondary]
@@ -158,15 +161,16 @@ export function folderTree(tracks: Pick<Track, 'bpm' | 'mood'>[], grouping: Grou
 }
 
 
-// The waveform as drawn: count bars, each the loudest of its points. Colour follows the mean
-// level, so drops stand out from breaks.
-export function waveBars(wave: Wave, count = 160): Bar[] {
-  const group = wave.peaks.length / count
+// The waveform as drawn, between from and to (0 to 1, the zoomed-in view): count bars, each
+// the loudest of its points. Colour follows the mean level, so drops stand out from breaks.
+export function waveBars(wave: Wave, count = 160, from = 0, to = 1): Bar[] {
+  const first = from * wave.peaks.length
+  const group = ((to - from) * wave.peaks.length) / count
   return Array.from({ length: count }, (_, i) => {
-    const start = Math.floor(i * group)
-    const end = Math.max(start + 1, Math.floor((i + 1) * group))
-    const peak = Math.max(...wave.peaks.slice(start, end))
-    const level = Math.max(...wave.rms.slice(start, end))
+    const start = Math.floor(first + i * group)
+    const end = Math.max(start + 1, Math.floor(first + (i + 1) * group))
+    const peak = Math.max(0, ...wave.peaks.slice(start, end))
+    const level = Math.max(0, ...wave.rms.slice(start, end))
     return { height: Math.max(0.04, peak / 100), level: level >= 75 ? 'high' : level >= 45 ? 'mid' : 'low' }
   })
 }

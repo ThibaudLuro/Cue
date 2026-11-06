@@ -3,6 +3,7 @@ import {
   defaultCues,
   folderOf,
   folderTree,
+  ALL_TRACKS,
   freeSpot,
   moveByBeats,
   MOODS,
@@ -44,14 +45,20 @@ export function useKeyPrep(key: UsbKey) {
   const { files, durations } = key
   // The workspace only shows up once the key is read.
   const keyFiles = files ?? NO_FILES
-  const analysis = useTrackAnalysis(keyFiles)
   const { names, rename } = useTrackNames()
   const imported = useImports(key.root, keyFiles)
+  // A track the key already has a grid, a key or cues for keeps them: no automatic analysis.
+  const setups = imported.ready
+    ? Object.entries(imported.tracks)
+        .filter(([, found]) => found.bpm || found.key || found.cues?.length)
+        .map(([path]) => path)
+    : null
+  const analysis = useTrackAnalysis(keyFiles, setups)
   // Where rekordbox will look for the files: from the key itself, else an earlier XML.
   const location = key.location || imported.mount || ''
   const [grouping, setGrouping] = useState<Grouping>('bpm')
-  // null: show the folder of the selected track.
-  const [pinnedFolder, setPinnedFolder] = useState<string | null>(null)
+  // null: show the folder of the selected track. The whole library to start with.
+  const [pinnedFolder, setPinnedFolder] = useState<string | null>(ALL_TRACKS)
   const [trackId, setTrackId] = useState(keyFiles[0]?.path ?? '')
   const [cueIndex, setCueIndex] = useState(0)
   const cueEdits = useCueEdits()
@@ -73,30 +80,34 @@ export function useKeyPrep(key: UsbKey) {
     const rhythm = analysis.analyses[file.path]?.rhythm
     const name = names[file.path]
     const found = imported.tracks[file.path]
+    // A fresh analysis the DJ asked for replaces what the key had (but not the names).
+    const manual = analysis.analyses[file.path]?.manual ?? 0
+    const setup = found && found.at >= manual ? found : undefined
     const sections = analysis.sections[file.path] ?? []
-    const mood = correction ?? found?.mood ?? guess?.mood ?? null
+    const mood = correction ?? setup?.mood ?? guess?.mood ?? null
     const base = {
       ...t,
       title: name?.title ?? found?.title ?? t.title,
       artist: name?.artist ?? found?.artist ?? t.artist,
-      bpm: found?.bpm ?? rhythm?.bpm ?? null,
-      key: found?.key ?? rhythm?.key ?? '—',
+      bpm: setup?.bpm ?? rhythm?.bpm ?? null,
+      key: setup?.key ?? rhythm?.key ?? '—',
       sections,
-      beat: found?.beat ?? rhythm?.beat ?? null,
+      beat: setup?.beat ?? rhythm?.beat ?? null,
       // The intro's cue sits on the first downbeat.
-      downbeat: found?.downbeat ?? (sections[0] && decoded ? sections[0].cue * decoded : null),
+      downbeat: setup?.downbeat ?? (sections[0] && decoded ? sections[0].cue * decoded : null),
       mood,
       // The level is the energy: corrected or found on the key, it wins over the guess.
       energy: mood ? MOODS.indexOf(mood) + 1 : (guess?.energy ?? 0),
-      confidence: correction ? 'set by you' : found?.mood ? 'from the stick' : (guess?.confidence ?? t.confidence),
+      confidence: correction ? 'set by you' : setup?.mood ? 'from the stick' : (guess?.confidence ?? t.confidence),
       analysis: analysis.state(file.path),
       // Cues found on the key for this track, whether shown or not.
-      keyCues: found?.cues?.length ? found.source : null,
+      keyCues: setup?.cues?.length ? setup.source : null,
     }
     const edit = cueEdits.edits[t.id]
-    const keyCues = found?.cues?.length && base.duration ? importedCues(base, found.cues) : null
-    if (edit && (!keyCues || edit.at >= (found?.at ?? 0))) return { ...base, cues: edit.cues, cueSource: 'edit' }
-    if (keyCues && found) return { ...base, cues: keyCues, cueSource: found.source }
+    const keyCues = setup?.cues?.length && base.duration ? importedCues(base, setup.cues) : null
+    // Cues moved by the DJ win, unless a newer setup or analysis came after them.
+    if (edit && edit.at > manual && (!keyCues || edit.at >= (setup?.at ?? 0))) return { ...base, cues: edit.cues, cueSource: 'edit' }
+    if (keyCues && setup) return { ...base, cues: keyCues, cueSource: setup.source }
     return { ...base, cues: defaultCues(sections), cueSource: 'auto' }
   })
   const tree = folderTree(tracks, grouping)
@@ -106,7 +117,9 @@ export function useKeyPrep(key: UsbKey) {
   const search = query.trim().toLowerCase()
   const visible = search
     ? tracks.filter((t) => `${t.title} ${t.artist} ${t.mood ?? ''}`.toLowerCase().includes(search))
-    : tracks.filter((t) => folderOf(t, grouping) === folder)
+    : folder === ALL_TRACKS
+      ? tracks
+      : tracks.filter((t) => folderOf(t, grouping) === folder)
   const allChecked = visible.length > 0 && visible.every((t) => checked.includes(t.id))
   const activeCue = track.cues[cueIndex] ? cueIndex : track.cues.findIndex(Boolean)
   const file = keyFiles.find((candidate) => candidate.path === track.id)
@@ -115,6 +128,12 @@ export function useKeyPrep(key: UsbKey) {
 
   const sortedTracks = tracks.filter((t) => t.mood)
   const cuesToWrite = tracks.reduce((sum, t) => sum + t.cues.filter(Boolean).length, 0)
+
+  // After a change that moves tracks, show the selected track's new folder; the whole library
+  // stays as it is.
+  function followTrack() {
+    setPinnedFolder((current) => (current === ALL_TRACKS ? current : null))
+  }
 
   // Any edit makes the key out of date again.
   function markDirty() {
@@ -171,11 +190,11 @@ export function useKeyPrep(key: UsbKey) {
 
     changeGrouping(next: Grouping) {
       setGrouping(next)
-      setPinnedFolder(null)
+      followTrack()
       markDirty()
     },
     openFolder(id: string) {
-      const first = tracks.find((t) => folderOf(t, grouping) === id)
+      const first = id === ALL_TRACKS ? tracks[0] : tracks.find((t) => folderOf(t, grouping) === id)
       setPinnedFolder(id)
       if (first) setTrackId(first.id)
       setCueIndex(0)
@@ -186,7 +205,7 @@ export function useKeyPrep(key: UsbKey) {
       setTrackId(id)
       setCueIndex(0)
       const picked = tracks.find((t) => t.id === id)
-      if (search && picked) setPinnedFolder(folderOf(picked, grouping))
+      if (search && picked && pinnedFolder !== ALL_TRACKS) setPinnedFolder(folderOf(picked, grouping))
     },
     search(value: string) {
       setQuery(value)
@@ -207,7 +226,7 @@ export function useKeyPrep(key: UsbKey) {
       if (!mood) return
       analysis.correct(checked, mood)
       setChecked([])
-      setPinnedFolder(null)
+      followTrack()
       markDirty()
     },
     renameTrack(field: NameField, value: string) {
@@ -217,12 +236,22 @@ export function useKeyPrep(key: UsbKey) {
     },
     changeMood(mood: Mood) {
       analysis.correct([track.id], mood)
-      setPinnedFolder(null)
+      followTrack()
       markDirty()
     },
 
     resetVisibleCues() {
       dropCueEdits(visible.map((t) => t.id))
+    },
+    // Fresh analysis of these tracks, even those the key already had a setup for.
+    reanalyse(ids: string[]) {
+      analysis.reanalyse(ids)
+      markDirty()
+    },
+    reanalyseChecked() {
+      analysis.reanalyse(checked)
+      setChecked([])
+      markDirty()
     },
     resetTrackCues() {
       // Edited here: back to what the key says (or the automatic placement). Taken from the key:
@@ -258,18 +287,15 @@ export function useKeyPrep(key: UsbKey) {
       )
       setCueIndex(index)
     },
-    cueToPlayhead() {
-      editActiveCue((cue) => ({ ...cue, position: snapToGrid(track, player.position) }))
-    },
-    renameCue(label: string) {
-      editActiveCue((cue) => ({ ...cue, label }))
+    renameCue(index: number, label: string) {
+      setTrackCues(track.cues.map((cue, i) => (cue && i === index ? { ...cue, label } : cue)))
     },
     nudgeCue(beats: number) {
       editActiveCue((cue) => ({ ...cue, position: moveByBeats(track, cue.position, beats) }))
     },
-    deleteCue() {
-      setTrackCues(track.cues.map((cue, i) => (i === activeCue ? null : cue)))
-      setCueIndex(0)
+    deleteCue(index: number) {
+      setTrackCues(track.cues.map((cue, i) => (i === index ? null : cue)))
+      if (index === activeCue) setCueIndex(0)
     },
 
     // Writes CUE/rekordbox.xml on the key: tracks with their grid, key and hot cues, and one

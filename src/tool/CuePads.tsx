@@ -1,17 +1,11 @@
-import { barBeat, cueLetter, formatCueTime, formatTime, PAD_COUNT } from './model'
+import { cueLetter, formatTime, PAD_COUNT } from './model'
 import { Overline } from './Overline'
 import { cueOrigin } from './cueSource'
 import type { KeyPrep } from './useKeyPrep'
 
-const smallButton =
-  'h-[34px] cursor-pointer rounded-md border border-control px-2.5 text-[13px] text-fg transition hover:border-subtle active:scale-[0.97]'
-
 export function CuePads({ prep }: { prep: KeyPrep }) {
   const { track } = prep
   const cueCount = track.cues.filter(Boolean).length
-  const active = track.cues[prep.activeCue]
-  const grid = active ? barBeat(track, active.position) : null
-  const listened = prep.player.playing || prep.player.time > 0
 
   return (
     <>
@@ -19,7 +13,9 @@ export function CuePads({ prep }: { prep: KeyPrep }) {
         <Overline>
           Hot cues · {cueCount}/{PAD_COUNT} · {cueOrigin(track)}
         </Overline>
-        <span className="text-xs text-subtle">Empty pad: cue at the playhead · double-click the waveform · drag markers to move them</span>
+        <span className="text-xs text-subtle">
+          Empty pad: cue at the playhead · double-click the waveform · drag markers to move them
+        </span>
       </div>
 
       <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-2">
@@ -40,22 +36,27 @@ export function CuePads({ prep }: { prep: KeyPrep }) {
                   </span>
                   <span className="text-[11px] text-subtle">—</span>
                 </span>
-                <span className="truncate text-[13px] text-subtle">+ Ajouter</span>
+                <span className="truncate text-[13px] text-subtle">+ Add</span>
               </button>
             )
           }
 
           const on = i === prep.activeCue
+          // The card jumps to the cue; its name is typed in place, the cross deletes it.
           return (
-            <button
+            <div
               key={i}
-              type="button"
-              aria-pressed={on}
-              aria-label={`Hot cue ${letter}, ${cue.label}`}
-              onClick={() => prep.selectCue(i)}
-              className={`flex min-h-16 cursor-pointer flex-col justify-between gap-1.5 rounded-lg border p-2.5 text-left text-fg transition-colors ${on ? 'border-fg bg-line' : 'border-line-strong bg-canvas hover:border-control'}`}
+              className={`group relative flex min-h-16 flex-col justify-between gap-1.5 rounded-lg border p-2.5 text-fg transition-colors ${on ? 'border-fg bg-line' : 'border-line-strong bg-canvas hover:border-control'}`}
             >
-              <span className="flex items-center justify-between">
+              <button
+                type="button"
+                aria-pressed={on}
+                aria-label={`Hot cue ${letter}, ${cue.label}: jump to it`}
+                onClick={() => prep.selectCue(i)}
+                // Covers the card, under the name field and the cross.
+                className="absolute inset-0 cursor-pointer rounded-lg"
+              />
+              <span className="pointer-events-none relative flex items-center gap-2 pr-5">
                 <span
                   className={`flex size-[18px] items-center justify-center rounded-sm text-[11px] font-semibold text-canvas transition-colors ${on ? 'bg-fg' : 'bg-accent'}`}
                 >
@@ -63,63 +64,30 @@ export function CuePads({ prep }: { prep: KeyPrep }) {
                 </span>
                 <span className="text-[11px] text-subtle tabular-nums">{formatTime(cue.position * track.duration)}</span>
               </span>
-              <span className="truncate text-[13px]">{cue.label}</span>
-            </button>
+              <input
+                type="text"
+                value={cue.label}
+                aria-label={`Name of hot cue ${letter}`}
+                onChange={(event) => prep.renameCue(i, event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === 'Escape') event.currentTarget.blur()
+                }}
+                spellCheck={false}
+                className="relative -mx-1 w-[calc(100%+8px)] min-w-0 truncate rounded-sm border border-transparent bg-transparent px-1 text-[13px] text-fg outline-none transition-colors hover:border-line-strong focus:border-accent focus:bg-canvas"
+              />
+              <button
+                type="button"
+                aria-label={`Delete hot cue ${letter}`}
+                title="Delete"
+                onClick={() => prep.deleteCue(i)}
+                className="absolute top-1.5 right-1.5 flex size-5 cursor-pointer items-center justify-center rounded-sm text-sm leading-none text-subtle opacity-60 transition hover:bg-line-strong hover:text-fg hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
+              >
+                ×
+              </button>
+            </div>
           )
         })}
       </div>
-
-      {active && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-[10px] border border-line-strong bg-canvas p-3">
-          <span className="flex size-6 items-center justify-center rounded-[5px] bg-fg text-xs font-semibold text-canvas">
-            {cueLetter(prep.activeCue)}
-          </span>
-          <label className="flex items-center gap-2 text-[13px] text-muted">
-            Name
-            <input
-              type="text"
-              value={active.label}
-              onChange={(event) => prep.renameCue(event.target.value)}
-              className="h-[34px] w-[140px] rounded-md border border-control bg-surface px-2.5 text-[13px] text-fg"
-            />
-          </label>
-          <span className="px-2 text-[13px] text-data tabular-nums">
-            {formatCueTime(active.position * track.duration)}
-            {grid && <span className="text-subtle"> · bar {grid.bar}.{grid.beat}</span>}
-          </span>
-          <div role="group" aria-label="Move the hot cue" className="flex gap-1">
-            <button type="button" onClick={() => prep.nudgeCue(-4)} className={smallButton} title="Back one bar">
-              − 1 bar
-            </button>
-            <button type="button" onClick={() => prep.nudgeCue(-1)} className={smallButton} title="Back one beat">
-              − 1 beat
-            </button>
-            <button type="button" onClick={() => prep.nudgeCue(1)} className={smallButton} title="Forward one beat">
-              + 1 beat
-            </button>
-            <button type="button" onClick={() => prep.nudgeCue(4)} className={smallButton} title="Forward one bar">
-              + 1 bar
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={prep.cueToPlayhead}
-            disabled={!listened}
-            title={listened ? 'Move the cue to the playhead' : 'Start playback to drop the cue on the fly'}
-            className={`${smallButton} disabled:cursor-not-allowed disabled:opacity-50`}
-          >
-            Here
-          </button>
-          <div className="flex-1" />
-          <button
-            type="button"
-            onClick={prep.deleteCue}
-            className="h-[34px] cursor-pointer rounded-md px-2.5 text-[13px] text-danger transition-opacity hover:opacity-80"
-          >
-            Delete
-          </button>
-        </div>
-      )}
     </>
   )
 }

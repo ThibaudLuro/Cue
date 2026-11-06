@@ -53,6 +53,8 @@ export type Analysis = {
   curve?: EnergyCurve
   // The mood model failed on this file (with this model): not retried at every visit.
   moodFailed?: string
+  // When the DJ asked for this analysis: it then wins over what was found on the key.
+  manual?: number
   // The file could not be decoded: not retried until it changes on the key.
   unreadable?: boolean
 }

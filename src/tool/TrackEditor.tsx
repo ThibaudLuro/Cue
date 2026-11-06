@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
 import { PauseIcon, PlayIcon, RefreshIcon } from '../components/icons'
 import { Spinner, Tag } from '../components/ui'
 import type { Bar, EnergyLevel } from '../lib/waveform'
@@ -66,24 +66,46 @@ export function TrackEditor({ prep }: { prep: KeyPrep }) {
                 {duration ? formatTime(duration) : '—'}
               </span>
             </Tag>
+            {resetLabel(track) && (
+              <button
+                type="button"
+                onClick={prep.resetTrackCues}
+                className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-3 text-[13px] text-muted transition-colors hover:text-fg"
+              >
+                <RefreshIcon width={14} height={14} />
+                {resetLabel(track)}
+              </button>
+            )}
             <button
               type="button"
-              onClick={prep.resetTrackCues}
-              className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-3 text-[13px] text-muted transition-colors hover:text-fg"
+              onClick={() => prep.reanalyse([track.id])}
+              disabled={track.analysis === 'running' || track.analysis === 'pending'}
+              title="New analysis of this track: BPM, key, energy, sections and hot cues replace the current setup"
+              className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-control px-3 text-[13px] text-fg transition hover:border-subtle disabled:cursor-default disabled:opacity-50"
             >
-              <RefreshIcon width={14} height={14} />
-              {resetLabel(track)}
+              {track.analysis === 'running' ? <Spinner className="size-3.5 text-accent" /> : <RefreshIcon width={14} height={14} />}
+              {track.analysis === 'running' ? 'Analysing…' : track.analysis === 'pending' ? 'Queued' : 'Re-analyse'}
             </button>
           </div>
         </div>
 
-        <Waveform prep={prep} />
+        {/* Keyed by track: each track opens unzoomed. */}
+        <Waveform key={track.id} prep={prep} />
         <CuePads prep={prep} />
       </div>
 
       <TrackDetails prep={prep} />
     </section>
   )
+}
+
+// Zoom levels: how many times the view is narrower than the whole track.
+const ZOOMS = [1, 2, 4, 8, 16, 32]
+// Wheel movement for one zoom step: one notch of a mouse wheel.
+const WHEEL_STEP = 80
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
 }
 
 function Waveform({ prep }: { prep: KeyPrep }) {
@@ -97,9 +119,84 @@ function Waveform({ prep }: { prep: KeyPrep }) {
   // click on its flag just jumps to it).
   const [drag, setDrag] = useState<{ index: number; position: number; startX: number; moved: boolean } | null>(null)
 
+  // The view: zoom level and where it starts (0 to 1 of the track).
+  const [zoom, setZoom] = useState(1)
+  const [viewStart, setViewStart] = useState(0)
+  const span = 1 / zoom
+  const start = clamp(viewStart, 0, 1 - span)
+  const end = start + span
+  const toView = (position: number) => (position - start) / span
+  const inView = (position: number) => position >= start - 0.001 && position <= end + 0.001
+
+  // Zooms on a point of the track (the pointer, the selected cue…), keeping it where it is on screen.
+  function zoomTo(level: number, around: number) {
+    const next = ZOOMS.find((z) => z >= level) ?? ZOOMS[ZOOMS.length - 1]
+    const anchor = toView(around)
+    setZoom(next)
+    setViewStart(clamp(around - anchor / next, 0, 1 - 1 / next))
+  }
+
+  function zoomStep(direction: 1 | -1, around = focus()) {
+    const index = ZOOMS.indexOf(zoom) + direction
+    if (index < 0 || index >= ZOOMS.length) return
+    zoomTo(ZOOMS[index], around)
+  }
+
+  // What the zoom buttons centre on: the selected cue if in view, else the playhead, else the middle.
+  function focus() {
+    const cue = track.cues[prep.activeCue]
+    if (cue && inView(cue.position)) return cue.position
+    if (player.time > 0 && inView(player.position)) return player.position
+    return start + span / 2
+  }
+
+  // The wheel zooms on the pointer; Shift + wheel (or a sideways trackpad swipe) moves along.
+  // Trackpads send many small deltas: they add up to one zoom step per notch of a mouse wheel.
+  // Native listener: React's wheel handlers cannot stop the page from scrolling.
+  const wheelTotal = useRef(0)
+  useEffect(() => {
+    const element = area.current
+    if (!element) return
+    function onWheel(event: WheelEvent) {
+      event.preventDefault()
+      const box = element!.getBoundingClientRect()
+      const sideways = event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)
+      if (sideways) {
+        const delta = event.shiftKey && !event.deltaX ? event.deltaY : event.deltaX
+        if (zoom > 1) setViewStart(clamp(start + (delta / box.width) * span, 0, 1 - span))
+        return
+      }
+      wheelTotal.current += event.deltaY
+      if (Math.abs(wheelTotal.current) < WHEEL_STEP) return
+      const at = start + clamp((event.clientX - box.left) / box.width, 0, 1) * span
+      zoomStep(wheelTotal.current < 0 ? 1 : -1, at)
+      wheelTotal.current = 0
+    }
+    element.addEventListener('wheel', onWheel, { passive: false })
+    return () => element.removeEventListener('wheel', onWheel)
+  })
+
+  // While playing, the view turns the page when the playhead reaches its edge. Adjusted during
+  // render (React's way of syncing state with a changing value), not in an effect.
+  const position = player.position
+  if (zoom > 1 && player.playing && (position > end || position < start)) {
+    setViewStart(clamp(position - span * 0.1, 0, 1 - span))
+  }
+
+  // Picking or moving a cue elsewhere (pads, keyboard) brings it into view.
+  const activePosition = track.cues[prep.activeCue]?.position
+  const activeKey = `${prep.activeCue}:${activePosition}`
+  const [seenCue, setSeenCue] = useState(activeKey)
+  if (activeKey !== seenCue) {
+    setSeenCue(activeKey)
+    if (zoom > 1 && !drag && activePosition !== undefined && !inView(activePosition)) {
+      setViewStart(clamp(activePosition - span / 2, 0, 1 - span))
+    }
+  }
+
   function positionAt(clientX: number) {
     const box = area.current?.getBoundingClientRect()
-    return box ? Math.min(0.999, Math.max(0, (clientX - box.left) / box.width)) : 0
+    return box ? clamp(start + ((clientX - box.left) / box.width) * span, 0, 0.999) : 0
   }
 
   function seekTo(event: MouseEvent<HTMLDivElement>) {
@@ -130,12 +227,30 @@ function Waveform({ prep }: { prep: KeyPrep }) {
   }
 
   function onKey(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === '+' || event.key === '=') return zoomStep(1)
+    if (event.key === '-') return zoomStep(-1)
     const direction = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
     if (!direction || !duration) return
     event.preventDefault()
-    // Shift: the selected cue moves by one beat (one bar with Alt too). Otherwise the playhead, by 5 s.
+    // Shift: the selected cue moves by one beat (one bar with Alt too). Otherwise the playhead,
+    // by 5 s, or by a tenth of the view once zoomed in.
+    const step = zoom > 1 ? (span * duration) / 10 : 5
     if (event.shiftKey) prep.nudgeCue(direction * (event.altKey ? 4 : 1))
-    else player.seek(Math.min(1, Math.max(0, (player.time + direction * 5) / duration)))
+    else player.seek(clamp((player.time + direction * step) / duration, 0, 1))
+  }
+
+  // Beat lines once zoomed in: bars from 4×, every beat from 8×.
+  const gridLines: { left: number; bar: boolean }[] = []
+  if (zoom >= 4 && track.bpm && track.beat !== null && duration) {
+    const beatLength = 60 / track.bpm
+    const downbeat = track.downbeat ?? track.beat
+    const from = start * duration
+    const to = end * duration
+    for (let n = Math.ceil((from - downbeat) / beatLength); downbeat + n * beatLength <= to; n++) {
+      const bar = ((n % 4) + 4) % 4 === 0
+      if (!bar && zoom < 8) continue
+      gridLines.push({ left: toView((downbeat + n * beatLength) / duration), bar })
+    }
   }
 
   return (
@@ -149,19 +264,27 @@ function Waveform({ prep }: { prep: KeyPrep }) {
         aria-valuenow={Math.round(player.time)}
         aria-valuetext={formatTime(player.time)}
         ref={area}
-        title="Click: play from here · double-click: add a hot cue · Shift + ← →: move the selected cue"
+        title="Click: play from here · double-click: add a hot cue · scroll: zoom · Shift + scroll: move along · Shift + ← →: move the selected cue"
         onClick={seekTo}
         onDoubleClick={(event) => prep.addCueAt(positionAt(event.clientX), !event.altKey)}
         onKeyDown={onKey}
         className="relative mt-11 h-32 cursor-pointer rounded-xs outline-offset-4 focus-visible:outline-2 focus-visible:outline-accent"
       >
+        {gridLines.map((line, i) => (
+          <span
+            key={i}
+            aria-hidden="true"
+            className={`pointer-events-none absolute inset-y-0 w-px ${line.bar ? 'bg-subtle/50' : 'bg-line-strong'}`}
+            style={{ left: `${line.left * 100}%` }}
+          />
+        ))}
         {/* Keyed so the waveform fades in when it arrives or the selection changes. */}
         <div
           key={`${track.id}-${wave ? 'wave' : 'waiting'}`}
           aria-hidden="true"
           className={`absolute inset-0 flex items-center gap-0.5 motion-safe:animate-fade-in ${wave ? '' : 'opacity-60'}`}
         >
-          {(wave ? waveBars(wave) : WAITING_BARS).map((bar, i) => (
+          {(wave ? waveBars(wave, 160, start, end) : WAITING_BARS).map((bar, i) => (
             // Below lg there is not enough room for 160 bars: keep one in two.
             <span
               key={i}
@@ -174,14 +297,15 @@ function Waveform({ prep }: { prep: KeyPrep }) {
           if (!cue) return null
           const active = i === prep.activeCue
           const dragged = drag?.index === i
-          const position = dragged ? drag.position : cue.position
-          const grid = barBeat(track, position)
+          const at = dragged ? drag.position : cue.position
+          if (!inView(at)) return null
+          const grid = barBeat(track, at)
           return (
             <div
               key={`${track.id}-${i}`}
               aria-hidden="true"
-              className={`absolute -top-[30px] bottom-0 ${dragged ? 'z-10' : 'transition-[left] duration-300 ease-fluid'} ${active || dragged ? 'w-0.5 bg-fg' : 'w-px bg-accent'}`}
-              style={{ left: `${position * 100}%` }}
+              className={`absolute -top-[30px] bottom-0 ${dragged ? 'z-10' : zoom === 1 ? 'transition-[left] duration-300 ease-fluid' : ''} ${active || dragged ? 'w-0.5 bg-fg' : 'w-px bg-accent'}`}
+              style={{ left: `${toView(at) * 100}%` }}
             >
               <span
                 title={`Hot cue ${cueLetter(i)} · drag to move (Alt: don’t snap to the beat)`}
@@ -197,22 +321,31 @@ function Waveform({ prep }: { prep: KeyPrep }) {
               </span>
               {dragged && drag.moved && (
                 <span className="pointer-events-none absolute -top-[30px] left-1/2 -translate-x-1/2 rounded-md border border-line-strong bg-surface px-2 py-0.5 text-[11px] whitespace-nowrap text-fg tabular-nums">
-                  {formatCueTime(position * duration)}
+                  {formatCueTime(at * duration)}
                   {grid && ` · bar ${grid.bar}.${grid.beat}`}
                 </span>
               )}
             </div>
           )
         })}
-        {player.time > 0 && (
+        {player.time > 0 && inView(player.position) && (
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -inset-y-1 w-0.5 rounded-full bg-fg shadow-[0_0_0_2px_var(--color-canvas)]"
-            style={{ left: `${player.position * 100}%` }}
+            style={{ left: `${toView(player.position) * 100}%` }}
           />
         )}
       </div>
-      <div aria-label="Track structure" className="mt-2 flex border-t border-line-strong">
+
+      {/* The whole track: its parts, and the window the zoomed-in view shows. */}
+      <div aria-label="Track structure" className="relative mt-2 flex border-t border-line-strong">
+        {zoom > 1 && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-px bottom-0 rounded-b-xs border-t-2 border-accent bg-accent/10"
+            style={{ left: `${start * 100}%`, width: `${span * 100}%` }}
+          />
+        )}
         {sections.map((section) => (
           <span
             key={section.label}
@@ -227,6 +360,8 @@ function Waveform({ prep }: { prep: KeyPrep }) {
           <span className="flex items-center gap-1.5 pt-2 pl-1.5 text-[11px] text-muted">
             {track.analysis === 'failed' ? (
               'Analysis failed: unreadable file'
+            ) : track.analysis === 'kept' ? (
+              'Setup taken from the stick · Re-analyse to detect sections'
             ) : (
               <>
                 <Spinner className="size-3 text-accent" />
@@ -237,6 +372,26 @@ function Waveform({ prep }: { prep: KeyPrep }) {
             )}
           </span>
         )}
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-subtle">
+        {zoom > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={() => setZoom(1)}
+              className="h-7 cursor-pointer rounded-md border border-line-strong px-2.5 text-fg transition-colors hover:border-subtle"
+            >
+              Reset zoom <span className="text-subtle tabular-nums">· {zoom}×</span>
+            </button>
+            <span className="tabular-nums">
+              {formatTime(start * duration)}–{formatTime(end * duration)}
+            </span>
+          </>
+        )}
+        <span className="ml-auto max-sm:hidden">
+          Scroll to zoom{zoom > 1 ? ' · Shift + scroll to move along' : ''}
+        </span>
       </div>
     </>
   )
