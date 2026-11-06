@@ -3,8 +3,7 @@ import { PauseIcon, PlayIcon, RefreshIcon } from '../components/icons'
 import { Spinner, Tag } from '../components/ui'
 import type { Bar, EnergyLevel } from '../lib/waveform'
 import { CuePads } from './CuePads'
-import { resetLabel } from './cueSource'
-import { barBeat, cueLetter, folderPath, formatCueTime, formatTime, MOODS, snapToGrid, waveBars } from './model'
+import { barBeat, cueLetter, formatCueTime, formatTime, MOODS, waveBars } from './model'
 import { Overline } from './Overline'
 import type { KeyPrep } from './useKeyPrep'
 
@@ -66,16 +65,6 @@ export function TrackEditor({ prep }: { prep: KeyPrep }) {
                 {duration ? formatTime(duration) : '—'}
               </span>
             </Tag>
-            {resetLabel(track) && (
-              <button
-                type="button"
-                onClick={prep.resetTrackCues}
-                className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-3 text-[13px] text-muted transition-colors hover:text-fg"
-              >
-                <RefreshIcon width={14} height={14} />
-                {resetLabel(track)}
-              </button>
-            )}
             <button
               type="button"
               onClick={() => prep.reanalyse([track.id])}
@@ -194,6 +183,37 @@ function Waveform({ prep }: { prep: KeyPrep }) {
     }
   }
 
+  // Zoomed in, the window on the structure strip below drags along the track. A press outside
+  // it jumps the window there first, then drags.
+  const overview = useRef<HTMLDivElement>(null)
+  // Where in the window the pointer holds it (0 to span), while dragging.
+  const [panGrab, setPanGrab] = useState<number | null>(null)
+
+  function overviewAt(clientX: number) {
+    const box = overview.current?.getBoundingClientRect()
+    return box ? clamp((clientX - box.left) / box.width, 0, 1) : 0
+  }
+
+  function startPan(event: PointerEvent<HTMLDivElement>) {
+    if (zoom === 1) return
+    const at = overviewAt(event.clientX)
+    const grab = at >= start && at <= end ? at - start : span / 2
+    event.currentTarget.setPointerCapture(event.pointerId)
+    setPanGrab(grab)
+    setViewStart(clamp(at - grab, 0, 1 - span))
+  }
+
+  function movePan(event: PointerEvent<HTMLDivElement>) {
+    if (panGrab === null) return
+    setViewStart(clamp(overviewAt(event.clientX) - panGrab, 0, 1 - span))
+  }
+
+  function endPan(event: PointerEvent<HTMLDivElement>) {
+    if (panGrab === null) return
+    event.currentTarget.releasePointerCapture(event.pointerId)
+    setPanGrab(null)
+  }
+
   function positionAt(clientX: number) {
     const box = area.current?.getBoundingClientRect()
     return box ? clamp(start + ((clientX - box.left) / box.width) * span, 0, 0.999) : 0
@@ -214,13 +234,12 @@ function Waveform({ prep }: { prep: KeyPrep }) {
     // A few pixels of slack so a click does not move the cue.
     const moved = drag.moved || Math.abs(event.clientX - drag.startX) > 3
     if (!moved) return
-    const raw = positionAt(event.clientX)
-    setDrag({ ...drag, moved, position: event.altKey ? raw : snapToGrid(track, raw) })
+    setDrag({ ...drag, moved, position: positionAt(event.clientX) })
   }
 
   function endDrag(event: PointerEvent<HTMLSpanElement>) {
     if (!drag) return
-    if (drag.moved) prep.moveCue(drag.index, drag.position, false)
+    if (drag.moved) prep.moveCue(drag.index, drag.position)
     else prep.selectCue(drag.index)
     event.currentTarget.releasePointerCapture(event.pointerId)
     setDrag(null)
@@ -266,7 +285,7 @@ function Waveform({ prep }: { prep: KeyPrep }) {
         ref={area}
         title="Click: play from here · double-click: add a hot cue · scroll: zoom · Shift + scroll: move along · Shift + ← →: move the selected cue"
         onClick={seekTo}
-        onDoubleClick={(event) => prep.addCueAt(positionAt(event.clientX), !event.altKey)}
+        onDoubleClick={(event) => prep.addCueAt(positionAt(event.clientX))}
         onKeyDown={onKey}
         className="relative mt-11 h-32 cursor-pointer rounded-xs outline-offset-4 focus-visible:outline-2 focus-visible:outline-accent"
       >
@@ -308,7 +327,7 @@ function Waveform({ prep }: { prep: KeyPrep }) {
               style={{ left: `${toView(at) * 100}%` }}
             >
               <span
-                title={`Hot cue ${cueLetter(i)} · drag to move (Alt: don’t snap to the beat)`}
+                title={`Hot cue ${cueLetter(i)} · drag to move`}
                 onPointerDown={(event) => startDrag(event, i, cue.position)}
                 onPointerMove={moveDrag}
                 onPointerUp={endDrag}
@@ -338,11 +357,19 @@ function Waveform({ prep }: { prep: KeyPrep }) {
       </div>
 
       {/* The whole track: its parts, and the window the zoomed-in view shows. */}
-      <div aria-label="Track structure" className="relative mt-2 flex border-t border-line-strong">
+      <div
+        ref={overview}
+        aria-label="Track structure"
+        onPointerDown={startPan}
+        onPointerMove={movePan}
+        onPointerUp={endPan}
+        onPointerCancel={endPan}
+        className={`relative mt-2 flex border-t border-line-strong ${zoom > 1 ? 'min-h-6 cursor-grab touch-none select-none' : ''} ${panGrab !== null ? 'cursor-grabbing' : ''}`}
+      >
         {zoom > 1 && (
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute -top-px bottom-0 rounded-b-xs border-t-2 border-accent bg-accent/10"
+            className={`pointer-events-none absolute -top-px bottom-0 rounded-b-xs border-t-2 border-accent transition-colors ${panGrab !== null ? 'bg-accent/25' : 'bg-accent/10'}`}
             style={{ left: `${start * 100}%`, width: `${span * 100}%` }}
           />
         )}
@@ -425,14 +452,6 @@ function TrackDetails({ prep }: { prep: KeyPrep }) {
         <p className="mt-2.5 text-xs text-subtle">
           Detection: <span className="text-data">{track.confidence}</span>
         </p>
-      </div>
-
-      <div>
-        <Overline className="mb-2">Filed in</Overline>
-        <p className="rounded-lg border border-line bg-canvas px-3 py-2.5 text-xs text-data tabular-nums">
-          {folderPath(track, prep.grouping, prep.key.name)}
-        </p>
-        <p className="mt-2 text-xs text-subtle">Changing the energy moves the track.</p>
       </div>
     </div>
   )

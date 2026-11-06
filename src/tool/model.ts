@@ -125,12 +125,6 @@ export function folderSegments(folder: string): [string, string] {
   return [primary, secondary]
 }
 
-export function folderPath(track: Pick<Track, 'bpm' | 'mood'>, grouping: Grouping, keyName: string) {
-  const folder = folderOf(track, grouping)
-  const segments = folder === UNSORTED ? ['Unsorted'] : folderSegments(folder)
-  return [keyName, ...segments].join(' / ') + ' /'
-}
-
 export type FolderGroup = { label: string; count: number; folders: { id: string; label: string; count: number }[] }
 
 export function folderTree(tracks: Pick<Track, 'bpm' | 'mood'>[], grouping: Grouping): FolderGroup[] {
@@ -213,28 +207,19 @@ export function plural(count: number, singular: string, pluralForm: string) {
 }
 
 // ---- Hot cue placement
-
-// Without an analysed tempo, moves still go by beats of a typical house tempo, unsnapped.
+// Without an analysed tempo, moves go by beats of a typical house tempo.
 const FALLBACK_BPM = 124
 
-function clampPosition(position: number) {
+// A cue stays where the DJ puts it: no quantize, positions are only kept inside the track.
+export function clampPosition(position: number) {
   return Math.min(0.999, Math.max(0, position))
 }
 
-// Snaps a position to the nearest beat (or bar) of the track's grid, like rekordbox's quantize.
-export function snapToGrid(track: Track, position: number, unit: 'beat' | 'bar' = 'beat') {
-  if (!track.bpm || track.beat === null || !track.duration) return clampPosition(position)
-  const length = (unit === 'bar' ? 240 : 60) / track.bpm
-  const anchor = unit === 'bar' ? (track.downbeat ?? track.beat) : track.beat
-  const time = position * track.duration
-  return clampPosition((anchor + Math.round((time - anchor) / length) * length) / track.duration)
-}
-
-// Moves by whole beats, landing on the grid even if the cue was off it.
+// Moves by exactly this many beats, from wherever the cue is.
 export function moveByBeats(track: Track, position: number, beats: number) {
   if (!track.duration) return position
   const beat = 60 / (track.bpm ?? FALLBACK_BPM) / track.duration
-  return snapToGrid(track, position + beats * beat)
+  return clampPosition(position + beats * beat)
 }
 
 // Bar and beat on the grid ("mesure 33.1"), counted from the first downbeat.
@@ -271,4 +256,51 @@ export function formatCueTime(seconds: number) {
   const minutes = Math.floor(seconds / 60)
   const rest = seconds - minutes * 60
   return `${minutes}:${rest.toFixed(2).padStart(5, '0')}`
+}
+
+// ---- Sorting the list
+
+export type SortKey = 'title' | 'bpm' | 'key' | 'energy' | 'cues' | 'status' | 'length'
+export type Sort = { key: SortKey; descending: boolean }
+
+type Sortable = Pick<Track, 'title' | 'artist' | 'bpm' | 'key' | 'mood' | 'duration'> & {
+  cues: CueSlots
+  analysis: string
+}
+
+// Camelot keys in wheel order: 1A, 1B, 2A… An unknown key has no value.
+function camelotOrder(key: string) {
+  const match = /^(\d{1,2})([AB])$/.exec(key)
+  return match ? Number(match[1]) * 2 + (match[2] === 'B' ? 1 : 0) : null
+}
+
+// What needs the DJ comes first: unreadable, to confirm, waiting, then ready.
+function statusOrder(track: Sortable) {
+  if (track.analysis === 'failed') return 0
+  if (!track.mood) return 1
+  if (track.analysis === 'pending' || track.analysis === 'running') return 2
+  return 3
+}
+
+function sortValue(track: Sortable, key: SortKey): string | number | null {
+  if (key === 'title') return `${track.title} ${track.artist}`.toLowerCase()
+  if (key === 'bpm') return track.bpm
+  if (key === 'key') return camelotOrder(track.key)
+  if (key === 'energy') return track.mood ? MOODS.indexOf(track.mood) : null
+  if (key === 'cues') return track.cues.filter(Boolean).length
+  if (key === 'status') return statusOrder(track)
+  return track.duration || null
+}
+
+// Tracks without a value (no BPM yet, unknown key…) stay at the bottom either way.
+export function sortTracks<T extends Sortable>(tracks: T[], sort: Sort | null) {
+  if (!sort) return tracks
+  const direction = sort.descending ? -1 : 1
+  return [...tracks].sort((a, b) => {
+    const x = sortValue(a, sort.key)
+    const y = sortValue(b, sort.key)
+    if (x === null || y === null) return x === y ? 0 : x === null ? 1 : -1
+    const order = typeof x === 'string' ? x.localeCompare(String(y), 'en') : x - (y as number)
+    return order * direction
+  })
 }

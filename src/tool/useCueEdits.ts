@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { idbDelete, idbGetAll, idbSet } from '../lib/idb'
+import { idbGetAll, idbSet } from '../lib/idb'
 import type { CueSlots } from './model'
 
 // at: when the DJ last changed them, to compare with what rekordbox wrote on the key.
@@ -26,11 +26,6 @@ export function useCueEdits() {
       const edit = { cues, at: Date.now() }
       setEdits((all) => ({ ...all, [path]: edit }))
       idbSet('cues', path, edit)
-    },
-    // Back to the cues found on the key, or the automatic placement.
-    drop(paths: string[]) {
-      setEdits((all) => Object.fromEntries(Object.entries(all).filter(([path]) => !paths.includes(path))))
-      for (const path of paths) idbDelete('cues', path)
     },
   }
 }

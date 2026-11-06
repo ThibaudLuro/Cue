@@ -1,7 +1,7 @@
 import { useRef, type KeyboardEvent } from 'react'
 import { RefreshIcon, SearchIcon } from '../components/icons'
 import { Spinner } from '../components/ui'
-import { folderSegments, formatTime, MOODS, plural } from './model'
+import { folderSegments, formatTime, MOODS, plural, type SortKey } from './model'
 import type { KeyPrep, KeyTrack } from './useKeyPrep'
 
 const columns = 'grid grid-cols-[32px_minmax(0,1fr)_56px_48px_120px_92px_104px_56px] gap-3'
@@ -49,13 +49,6 @@ export function TrackList({ prep }: { prep: KeyPrep }) {
               className="w-[200px] bg-transparent text-[13px] text-fg outline-none placeholder:text-subtle"
             />
           </label>
-          <button
-            type="button"
-            onClick={prep.resetVisibleCues}
-            className="h-[38px] cursor-pointer rounded-lg border border-control px-3.5 text-[13px] text-fg transition hover:border-subtle active:scale-[0.98]"
-          >
-            Reset hot cues
-          </button>
         </div>
       </div>
 
@@ -77,15 +70,13 @@ export function TrackList({ prep }: { prep: KeyPrep }) {
                 className={checkbox}
               />
             </span>
-            <div aria-hidden="true" className={`${columns} py-2.5 pr-4 text-[11px] tracking-[0.06em] text-subtle uppercase`}>
-              <span>#</span>
-              <span>Title</span>
-              <span>BPM</span>
-              <span>Key</span>
-              <span>Energy</span>
-              <span>Hot cues</span>
-              <span>Status</span>
-              <span>Length</span>
+            <div className={`${columns} py-1.5 pr-4 text-[11px] tracking-[0.06em] text-subtle uppercase`}>
+              <span aria-hidden="true" className="py-1">
+                #
+              </span>
+              {SORTABLE.map(([key, label]) => (
+                <SortHeader key={key} prep={prep} sortKey={key} label={label} />
+              ))}
             </div>
             <span aria-hidden="true" />
           </div>
@@ -231,5 +222,37 @@ function ReanalyseButton({ prep, track }: { prep: KeyPrep; track: KeyTrack }) {
     >
       <RefreshIcon width={14} height={14} className={track.analysis === 'running' ? 'motion-safe:animate-spin' : ''} />
     </button>
+  )
+}
+
+const SORTABLE: [SortKey, string][] = [
+  ['title', 'Title'],
+  ['bpm', 'BPM'],
+  ['key', 'Key'],
+  ['energy', 'Energy'],
+  ['cues', 'Hot cues'],
+  ['status', 'Status'],
+  ['length', 'Length'],
+]
+
+// A column title that sorts the list: ascending, descending, then the stick's order again.
+function SortHeader({ prep, sortKey, label }: { prep: KeyPrep; sortKey: SortKey; label: string }) {
+  const active = prep.sort?.key === sortKey
+  const descending = active && prep.sort?.descending
+  return (
+    <span>
+      <button
+        type="button"
+        onClick={() => prep.sortBy(sortKey)}
+        aria-label={`Sort by ${label.toLowerCase()}${active ? (descending ? ', descending' : ', ascending') : ''}`}
+        title={`Sort by ${label.toLowerCase()}`}
+        className={`-mx-1 flex cursor-pointer items-center gap-1 rounded-sm px-1 py-1 uppercase transition-colors hover:text-fg ${active ? 'text-fg' : ''}`}
+      >
+        {label}
+        <span aria-hidden="true" className={`text-[9px] ${active ? '' : 'opacity-0'}`}>
+          {descending ? '▼' : '▲'}
+        </span>
+      </button>
+    </span>
   )
 }

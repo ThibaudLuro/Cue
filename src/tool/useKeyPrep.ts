@@ -7,13 +7,16 @@ import {
   freeSpot,
   moveByBeats,
   MOODS,
+  sortTracks,
   sectionAt,
-  snapToGrid,
+  clampPosition,
   trackFromFile,
   type Cue,
   type CueSlots,
   type Grouping,
   type Mood,
+  type Sort,
+  type SortKey,
   type Track,
 } from './model'
 import { importedCues, type ImportSource } from './imports'
@@ -32,7 +35,6 @@ export type CueSource = 'edit' | ImportSource | 'auto'
 export type KeyTrack = Track & {
   cues: CueSlots
   cueSource: CueSource
-  keyCues: ImportSource | null
   analysis: AnalysisState
 }
 export type SaveStatus = 'pending' | 'saving' | 'saved'
@@ -64,6 +66,8 @@ export function useKeyPrep(key: UsbKey) {
   const cueEdits = useCueEdits()
   const [checked, setChecked] = useState<string[]>([])
   const [query, setQuery] = useState('')
+  // null: the order of the files on the stick.
+  const [sort, setSort] = useState<Sort | null>(null)
   const [status, setStatus] = useState<SaveStatus>('pending')
   const [progress, setProgress] = useState(0)
   const [toast, setToast] = useState(false)
@@ -100,8 +104,6 @@ export function useKeyPrep(key: UsbKey) {
       energy: mood ? MOODS.indexOf(mood) + 1 : (guess?.energy ?? 0),
       confidence: correction ? 'set by you' : setup?.mood ? 'from the stick' : (guess?.confidence ?? t.confidence),
       analysis: analysis.state(file.path),
-      // Cues found on the key for this track, whether shown or not.
-      keyCues: setup?.cues?.length ? setup.source : null,
     }
     const edit = cueEdits.edits[t.id]
     const keyCues = setup?.cues?.length && base.duration ? importedCues(base, setup.cues) : null
@@ -115,11 +117,12 @@ export function useKeyPrep(key: UsbKey) {
   const track = tracks.find((t) => t.id === trackId) ?? tracks[0]
   const folder = pinnedFolder ?? folderOf(track, grouping)
   const search = query.trim().toLowerCase()
-  const visible = search
+  const filtered = search
     ? tracks.filter((t) => `${t.title} ${t.artist} ${t.mood ?? ''}`.toLowerCase().includes(search))
     : folder === ALL_TRACKS
       ? tracks
       : tracks.filter((t) => folderOf(t, grouping) === folder)
+  const visible = sortTracks(filtered, sort)
   const allChecked = visible.length > 0 && visible.every((t) => checked.includes(t.id))
   const activeCue = track.cues[cueIndex] ? cueIndex : track.cues.findIndex(Boolean)
   const file = keyFiles.find((candidate) => candidate.path === track.id)
@@ -150,17 +153,12 @@ export function useKeyPrep(key: UsbKey) {
     setTrackCues(track.cues.map((cue, i) => (cue && i === activeCue ? change(cue) : cue)))
   }
 
-  function placeCue(index: number, position: number, snap: boolean) {
-    const spot = snap ? snapToGrid(track, position) : Math.min(0.999, Math.max(0, position))
+  // Exactly where the DJ puts it: no quantize.
+  function placeCue(index: number, position: number) {
+    const spot = clampPosition(position)
     const label = sectionAt(track, spot) ?? 'Cue'
     setTrackCues(track.cues.map((cue, i) => (i === index ? { label, position: spot } : cue)))
     setCueIndex(index)
-  }
-
-  function dropCueEdits(ids: string[]) {
-    cueEdits.drop(ids)
-    setCueIndex(0)
-    markDirty()
   }
 
   return {
@@ -176,6 +174,7 @@ export function useKeyPrep(key: UsbKey) {
     visible,
     grouping,
     query,
+    sort,
     isSearching: search !== '',
     checked,
     allChecked,
@@ -206,6 +205,12 @@ export function useKeyPrep(key: UsbKey) {
       setCueIndex(0)
       const picked = tracks.find((t) => t.id === id)
       if (search && picked && pinnedFolder !== ALL_TRACKS) setPinnedFolder(folderOf(picked, grouping))
+    },
+    // Click on a column: ascending, then descending, then back to the stick's order.
+    sortBy(key: SortKey) {
+      setSort((current) =>
+        current?.key !== key ? { key, descending: false } : current.descending ? null : { key, descending: true },
+      )
     },
     search(value: string) {
       setQuery(value)
@@ -240,9 +245,6 @@ export function useKeyPrep(key: UsbKey) {
       markDirty()
     },
 
-    resetVisibleCues() {
-      dropCueEdits(visible.map((t) => t.id))
-    },
     // Fresh analysis of these tracks, even those the key already had a setup for.
     reanalyse(ids: string[]) {
       analysis.reanalyse(ids)
@@ -253,12 +255,6 @@ export function useKeyPrep(key: UsbKey) {
       setChecked([])
       markDirty()
     },
-    resetTrackCues() {
-      // Edited here: back to what the key says (or the automatic placement). Taken from the key:
-      // the automatic placement instead, as an edit.
-      if (track.cueSource === 'edit') dropCueEdits([track.id])
-      else setTrackCues(defaultCues(track.sections))
-    },
     selectCue(index: number) {
       setCueIndex(index)
       // Like a hot cue on a deck: jump to it.
@@ -266,23 +262,23 @@ export function useKeyPrep(key: UsbKey) {
       if (cue) player.seek(cue.position)
     },
     // Empty pad: like on a CDJ, the cue goes where the music is playing (or was paused),
-    // on the nearest beat. Before any playback, in the widest gap between existing cues.
+    // exactly. Before any playback, in the widest gap between existing cues.
     addCue(index: number) {
       const listened = player.playing || player.time > 0
-      placeCue(index, listened ? player.position : freeSpot(track.cues), true)
+      placeCue(index, listened ? player.position : freeSpot(track.cues))
     },
     // Double-click on the waveform: the first free pad, at that spot.
-    addCueAt(position: number, snap: boolean) {
+    addCueAt(position: number) {
       const index = track.cues.findIndex((cue) => !cue)
       if (index < 0) return false
-      placeCue(index, position, snap)
+      placeCue(index, position)
       return true
     },
-    // Drag on the waveform; snap to the beat unless the DJ holds Alt.
-    moveCue(index: number, position: number, snap: boolean) {
+    // Drag on the waveform.
+    moveCue(index: number, position: number) {
       setTrackCues(
         track.cues.map((cue, i) =>
-          cue && i === index ? { ...cue, position: snap ? snapToGrid(track, position) : position } : cue,
+          cue && i === index ? { ...cue, position: clampPosition(position) } : cue,
         ),
       )
       setCueIndex(index)

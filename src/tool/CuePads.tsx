@@ -9,14 +9,9 @@ export function CuePads({ prep }: { prep: KeyPrep }) {
 
   return (
     <>
-      <div className="mt-6 flex flex-wrap items-baseline justify-between gap-3">
-        <Overline>
-          Hot cues · {cueCount}/{PAD_COUNT} · {cueOrigin(track)}
-        </Overline>
-        <span className="text-xs text-subtle">
-          Empty pad: cue at the playhead · double-click the waveform · drag markers to move them
-        </span>
-      </div>
+      <Overline className="mt-6">
+        Hot cues · {cueCount}/{PAD_COUNT} · {cueOrigin(track)}
+      </Overline>
 
       <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-2">
         {track.cues.map((cue, i) => {
