@@ -4,7 +4,6 @@ import { Logo } from '../components/ui'
 const links = [
   { href: '#cle-usb', label: 'Features' },
   { href: '#hot-cues', label: 'Hot cues' },
-  { href: '#tarifs', label: 'Pricing' },
   { href: '#faq', label: 'FAQ' },
 ]
 
@@ -30,17 +29,11 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-          <a
-            href="#connexion"
-            className="hidden h-10 items-center rounded-lg px-3.5 text-sm text-fg transition-colors hover:text-accent sm:flex"
-          >
-            Log in
-          </a>
           <Link
             to="/app"
             className="flex h-10 items-center rounded-lg bg-fg px-4 text-sm font-medium text-canvas transition hover:bg-data active:scale-[0.98]"
           >
-            Try it free
+            Open Cue
           </Link>
         </div>
       </nav>

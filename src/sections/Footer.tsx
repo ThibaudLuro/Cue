@@ -6,7 +6,6 @@ const columns = [
     links: [
       { href: '#cle-usb', label: 'Features' },
       { href: '#hot-cues', label: 'Hot cues' },
-      { href: '#tarifs', label: 'Pricing' },
     ],
   },
   {

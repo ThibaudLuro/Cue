@@ -75,13 +75,6 @@ export function ToolHeader({ prep }: { prep: KeyPrep }) {
           <span className="relative tabular-nums">{saveLabel(prep)}</span>
         </button>
         <SaveHelp prep={prep} open={helpOpen} onOpenChange={setHelpOpen} />
-        <button
-          type="button"
-          aria-label="My account"
-          className="size-9 cursor-pointer rounded-full border border-control bg-surface text-xs font-semibold text-data transition hover:border-subtle"
-        >
-          DJ
-        </button>
       </header>
 
       <AnalysisBar prep={prep} />

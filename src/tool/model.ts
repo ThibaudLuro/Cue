@@ -37,14 +37,22 @@ export function toMood(name: string): Mood | undefined {
   return MOODS.find((mood) => mood === name) ?? FORMER_MOODS[name]
 }
 
-export const BPM_RANGES = [
-  '< 118 BPM',
-  '118–121 BPM',
-  '122–125 BPM',
-  '126–129 BPM',
-  '130+ BPM',
-  'Unknown BPM',
-] as const
+// BPM folders, 4 BPM wide up to 150: from = lowest tempo in the folder.
+const BPM_FOLDERS = [
+  { from: 0, label: '< 118 BPM' },
+  { from: 118, label: '118–121 BPM' },
+  { from: 122, label: '122–125 BPM' },
+  { from: 126, label: '126–129 BPM' },
+  { from: 130, label: '130–133 BPM' },
+  { from: 134, label: '134–137 BPM' },
+  { from: 138, label: '138–141 BPM' },
+  { from: 142, label: '142–145 BPM' },
+  { from: 146, label: '146–150 BPM' },
+  { from: 150.5, label: '> 150 BPM' },
+]
+const UNKNOWN_BPM = 'Unknown BPM'
+
+export const BPM_RANGES = [...BPM_FOLDERS.map((folder) => folder.label), UNKNOWN_BPM]
 
 export type Grouping = 'bpm' | 'mood'
 
@@ -103,12 +111,8 @@ export function trackFromFile(path: string, duration: number): Track {
 }
 
 function bpmRange(bpm: number | null) {
-  if (bpm === null) return BPM_RANGES[5]
-  if (bpm < 118) return BPM_RANGES[0]
-  if (bpm < 122) return BPM_RANGES[1]
-  if (bpm < 126) return BPM_RANGES[2]
-  if (bpm < 130) return BPM_RANGES[3]
-  return BPM_RANGES[4]
+  if (bpm === null) return UNKNOWN_BPM
+  return BPM_FOLDERS.findLast((folder) => bpm >= folder.from)!.label
 }
 
 // Folder ids are "primary|secondary", e.g. "122–125 BPM|Dark" when sorting by BPM first.

@@ -18,7 +18,7 @@ export function CallToAction() {
             <span className="text-gradient-brand">next stick.</span>
           </h2>
           <p className="max-w-[520px] text-lg text-data">
-            Plug it in, and Cue handles the sorting and the cues. No credit card needed.
+            Plug it in, and Cue handles the sorting and the cues. Free, nothing to install, no account.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -27,12 +27,6 @@ export function CallToAction() {
             >
               Connect my stick
             </Link>
-            <a
-              href="#tarifs"
-              className="flex h-12 items-center rounded-lg border border-idle bg-canvas/40 px-6 text-[15px] text-fg transition hover:border-subtle active:scale-[0.98]"
-            >
-              See pricing
-            </a>
           </div>
         </div>
       </div>

@@ -12,7 +12,6 @@ import { Hero } from '../sections/Hero'
 import { HotCues } from '../sections/HotCues'
 import { HowItWorks } from '../sections/HowItWorks'
 import { Moods } from '../sections/Moods'
-import { Pricing } from '../sections/Pricing'
 import { UsbPreview } from '../sections/UsbPreview'
 
 export function Landing() {
@@ -47,7 +46,6 @@ export function Landing() {
         <Moods />
         <HowItWorks />
         <Compatibility />
-        <Pricing />
         <Faq />
         <CallToAction />
       </main>
