@@ -2,7 +2,7 @@
 // by CDJs) or in a rekordbox XML (the one Cue writes in CUE/, or a collection exported from
 // rekordbox). Read only: Cue never touches these files.
 import { cueLetter, PAD_COUNT, sectionAt, toMood, type CueSlots, type Mood, type Track } from './model'
-import { camelot } from './rhythm'
+import { camelot, GRID_VERSION } from './rhythm'
 import type { KeyFile } from './usbKey'
 
 export type ImportSource = 'rekordbox' | 'xml'
@@ -183,43 +183,60 @@ type XmlTrack = Imported & { location: string; size?: number }
 export function parseRekordboxXml(text: string, at: number): XmlTrack[] {
   const doc = new DOMParser().parseFromString(text, 'application/xml')
   if (doc.querySelector('parsererror') || !doc.querySelector('DJ_PLAYLISTS')) return []
-  return [...doc.querySelectorAll('COLLECTION > TRACK')].map((node) => {
-    const number = (name: string, element: Element = node) => {
-      const value = Number.parseFloat(element.getAttribute(name) ?? '')
-      return Number.isFinite(value) ? value : undefined
-    }
-    const tempo = node.querySelector('TEMPO')
-    const first = tempo ? number('Inizio', tempo) : undefined
-    const tempoBpm = tempo ? number('Bpm', tempo) : undefined
-    const position = tempo ? (number('Battito', tempo) ?? 1) : 1
-    const comments = node.getAttribute('Comments') ?? ''
-    // Cue writes "Energy: 4 · Build"; earlier exports "Énergie : …" or "Ambiance : Sombre".
-    const mood = toMood(/(?:Energy|Énergie|Ambiance) ?: (\d · [A-Za-z-]+|[^·]+)/.exec(comments)?.[1]?.trim() ?? '')
-    const bpm = number('AverageBpm') || tempoBpm
-
-    return {
-      source: 'xml' as const,
-      at,
-      location: decodeLocation(node.getAttribute('Location') ?? ''),
-      size: number('Size'),
-      title: node.getAttribute('Name') || undefined,
-      artist: node.getAttribute('Artist') || undefined,
-      bpm: bpm || undefined,
-      key: toCamelot(node.getAttribute('Tonality') ?? ''),
-      beat: first,
-      // Battito: which beat of the bar the grid's first beat is.
-      downbeat: first !== undefined && tempoBpm ? first + ((5 - position) % 4) * (60 / tempoBpm) : undefined,
-      mood,
-      cues: [...node.querySelectorAll('POSITION_MARK')]
-        .filter((mark) => mark.getAttribute('Type') === '0')
-        .map((mark) => ({
-          pad: number('Num', mark) ?? -1,
-          // Cue writes "A · Drop" on memory cues: keep the part name.
-          label: (mark.getAttribute('Name') ?? '').replace(/^[A-H] · /, ''),
-          time: number('Start', mark) ?? 0,
-        })),
-    }
+  // An export of Cue's own, from an older beat detection: its grids, and the cues placed on them,
+  // are what Cue now does better. Only the names and the energies are taken; the rest is
+  // analysed again.
+  const product = doc.querySelector('PRODUCT')
+  const stale = product?.getAttribute('Name') === 'Cue' && cueGridVersion(product.getAttribute('Version')) < GRID_VERSION
+  return [...doc.querySelectorAll('COLLECTION > TRACK')].map((node): XmlTrack => {
+    const track = xmlTrack(node, at)
+    if (!stale) return track
+    const { source, location, size, title, artist, mood } = track
+    return { source, at, location, size, title, artist, mood }
   })
+}
+
+// Cue writes its GRID_VERSION as the product version; exports before it wrote "1.0".
+function cueGridVersion(version: string | null) {
+  return Number.parseInt(version ?? '', 10) || 1
+}
+
+function xmlTrack(node: Element, at: number): XmlTrack {
+  const number = (name: string, element: Element = node) => {
+    const value = Number.parseFloat(element.getAttribute(name) ?? '')
+    return Number.isFinite(value) ? value : undefined
+  }
+  const tempo = node.querySelector('TEMPO')
+  const first = tempo ? number('Inizio', tempo) : undefined
+  const tempoBpm = tempo ? number('Bpm', tempo) : undefined
+  const position = tempo ? (number('Battito', tempo) ?? 1) : 1
+  const comments = node.getAttribute('Comments') ?? ''
+  // Cue writes "Energy: 4 · Build"; earlier exports "Énergie : …" or "Ambiance : Sombre".
+  const mood = toMood(/(?:Energy|Énergie|Ambiance) ?: (\d · [A-Za-z-]+|[^·]+)/.exec(comments)?.[1]?.trim() ?? '')
+  const bpm = number('AverageBpm') || tempoBpm
+
+  return {
+    source: 'xml' as const,
+    at,
+    location: decodeLocation(node.getAttribute('Location') ?? ''),
+    size: number('Size'),
+    title: node.getAttribute('Name') || undefined,
+    artist: node.getAttribute('Artist') || undefined,
+    bpm: bpm || undefined,
+    key: toCamelot(node.getAttribute('Tonality') ?? ''),
+    beat: first,
+    // Battito: which beat of the bar the grid's first beat is.
+    downbeat: first !== undefined && tempoBpm ? first + ((5 - position) % 4) * (60 / tempoBpm) : undefined,
+    mood,
+    cues: [...node.querySelectorAll('POSITION_MARK')]
+      .filter((mark) => mark.getAttribute('Type') === '0')
+      .map((mark) => ({
+        pad: number('Num', mark) ?? -1,
+        // Cue writes "A · Drop" on memory cues: keep the part name.
+        label: (mark.getAttribute('Name') ?? '').replace(/^[A-H] · /, ''),
+        time: number('Start', mark) ?? 0,
+      })),
+  }
 }
 
 // A track of the XML is the key file whose path ends its location; if the key was mounted

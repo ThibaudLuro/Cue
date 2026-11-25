@@ -2,6 +2,7 @@
 // Once imported, rekordbox exports the tracks to the key with their grid and hot cues,
 // in the database CDJs read.
 import { cueLetter, type CueSlots, type Mood } from './model'
+import { GRID_VERSION } from './rhythm'
 
 export type ExportTrack = {
   // Path on the key, from its root.
@@ -128,7 +129,8 @@ export function rekordboxXml(tracks: ExportTrack[], playlists: ExportPlaylist[],
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<DJ_PLAYLISTS Version="1.0.0">',
-    '  <PRODUCT Name="Cue" Version="1.0" Company="Cue"/>',
+    // The version is the beat detection's: an older export's grids get redone (imports.ts).
+    `  <PRODUCT Name="Cue" Version="${GRID_VERSION}" Company="Cue"/>`,
     `  <COLLECTION Entries="${tracks.length}">`,
     ...tracks.map((track, i) => trackXml(track, i + 1, root)),
     '  </COLLECTION>',

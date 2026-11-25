@@ -49,7 +49,13 @@ function connectCopy(key: UsbKey) {
       text: 'Cue reads your stick straight from the browser: open this page in Chrome, Edge or Opera, on a computer.',
     }
   if (key.phase === 'checking' || key.scanning)
-    return { title: 'Reading the stick…', text: 'Cue is looking for tracks on your stick.' }
+    return {
+      title: 'Reading the stick…',
+      text:
+        key.scanned > 0
+          ? `Cue is looking for tracks on your stick: ${key.scanned} found so far.`
+          : 'Cue is looking for tracks on your stick.',
+    }
   if (key.phase === 'reconnect')
     return {
       title: `Resume ${key.name}`,

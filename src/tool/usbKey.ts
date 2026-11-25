@@ -48,18 +48,37 @@ export async function requestPermission(handle: FileSystemDirectoryHandle) {
   return (await handle.requestPermission(MODE)) === 'granted'
 }
 
-export async function scanKey(root: FileSystemDirectoryHandle) {
+// A drive that stops answering (asleep, half unplugged) can leave a browser call waiting forever.
+// The scan gives up once a single step has not come back for this long, however big the key is.
+const STALL_MS = 20_000
+
+// Rejects if `promise` takes longer than `ms`. The browser call keeps running, its result is dropped.
+export function within<T>(promise: Promise<T>, ms: number) {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('The stick is not answering')), ms)
+  })
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
+}
+
+// onProgress: tracks found so far, so a big key shows it is moving.
+export async function scanKey(root: FileSystemDirectoryHandle, onProgress?: (found: number) => void) {
   const files: KeyFile[] = []
 
   async function walk(dir: FileSystemDirectoryHandle, prefix: string) {
-    for await (const entry of dir.values()) {
+    const entries = dir.values()
+    while (true) {
+      const next = await within(entries.next(), STALL_MS)
+      if (next.done) break
+      const entry = next.value
       if (SKIPPED.test(entry.name)) continue
       const path = prefix + entry.name
       if (entry.kind === 'directory') {
         await walk(entry, `${path}/`)
       } else if (AUDIO.test(entry.name)) {
-        const file = await entry.getFile()
+        const file = await within(entry.getFile(), STALL_MS)
         files.push({ path, name: entry.name, size: file.size, lastModified: file.lastModified, handle: entry })
+        onProgress?.(files.length)
       }
     }
   }
@@ -68,13 +87,10 @@ export async function scanKey(root: FileSystemDirectoryHandle) {
   return files.sort((a, b) => a.path.localeCompare(b.path, 'en'))
 }
 
-// Reading the first entry fails once the drive is gone.
+// Reading the first entry fails once the drive is gone. A drive that does not answer counts as gone.
 export async function isPlugged(root: FileSystemDirectoryHandle) {
   try {
-    for await (const entry of root.values()) {
-      void entry
-      break
-    }
+    await within(root.values().next(), 5_000)
     return true
   } catch {
     return false

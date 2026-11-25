@@ -11,6 +11,7 @@ import {
   saveLastKey,
   scanKey,
   fileKey,
+  within,
   type KeyFile,
 } from './usbKey'
 
@@ -22,6 +23,8 @@ export type KeyPhase = 'unsupported' | 'checking' | 'idle' | 'reconnect' | 'read
 export type UsbKey = ReturnType<typeof useUsbKey>
 
 const POLL_MS = 1500
+// How long the browser gets to show its permission prompt before Cue assumes it never will.
+const RECONNECT_MS = 4000
 
 export function useUsbKey() {
   const [phase, setPhase] = useState<KeyPhase>(() => (isSupported() ? 'checking' : 'unsupported'))
@@ -30,6 +33,8 @@ export function useUsbKey() {
   const [files, setFiles] = useState<KeyFile[] | null>(null)
   const [durations, setDurations] = useState<Record<string, number>>({})
   const [scanning, setScanning] = useState(false)
+  // Tracks found by the scan in progress.
+  const [scanned, setScanned] = useState(0)
   const [error, setError] = useState<string | null>(null)
   // By key name, as typed by the DJ.
   const [locations, setLocations] = useState<Record<string, string>>({})
@@ -42,9 +47,12 @@ export function useUsbKey() {
     navigator.storage?.persist?.().catch(() => {})
     const id = ++scanId.current
     setScanning(true)
+    setScanned(0)
     setError(null)
     try {
-      const found = await scanKey(root)
+      const found = await scanKey(root, (count) => {
+        if (id === scanId.current) setScanned(count)
+      })
       if (id !== scanId.current) return
       wasRead.current = true
       setFiles(found)
@@ -69,29 +77,60 @@ export function useUsbKey() {
   useEffect(() => {
     if (phase !== 'checking') return
     let cancelled = false
-    loadLastKey().then(async (last) => {
+    ;(async () => {
+      const last = await within(loadLastKey(), 5_000).catch(() => undefined)
       if (cancelled) return
       if (!last) return setPhase('idle')
       setHandle(last)
-      if (!(await hasPermission(last))) return setPhase('reconnect')
-      if (await isPlugged(last)) read(last)
+      // A stale handle can throw here: asking the DJ again is always a safe way out.
+      // null: the browser did not answer. Seen with a drive root whose drive moved (another letter):
+      // asking again would not answer either, so the DJ goes straight to picking the stick.
+      const allowed = await within(hasPermission(last), 5_000).catch(() => null)
+      if (cancelled) return
+      if (allowed === null) {
+        setPhase('idle')
+        setError(`Cue can’t find ${keyName(last)} where it was last time. Choose your stick again.`)
+        return
+      }
+      if (!allowed) return setPhase('reconnect')
+      const plugged = await isPlugged(last)
+      if (cancelled) return
+      if (plugged) read(last)
       else setPhase('unplugged')
-    })
+    })()
     return () => {
       cancelled = true
     }
   }, [phase, read])
 
   // Unplugged and plugged back: the handle keeps pointing at the same drive.
+  // A check can take longer than POLL_MS (a busy drive answers slowly): one at a time, and the
+  // answer of a check started under an older phase is dropped, or it would flip the phase back
+  // and start a new read, over and over.
   useEffect(() => {
-    if (!handle || (phase !== 'ready' && phase !== 'unplugged')) return
+    if (!handle || scanning || (phase !== 'ready' && phase !== 'unplugged')) return
+    let alive = true
+    let checking = false
+    let misses = 0
     const timer = setInterval(async () => {
-      if (scanning) return
+      if (checking) return
+      checking = true
       const plugged = await isPlugged(handle)
-      if (phase === 'ready' && !plugged) setPhase('unplugged')
-      if (phase === 'unplugged' && plugged) read(handle)
+      checking = false
+      if (!alive) return
+      // A drive busy with the analysis can miss one check: gone only after two in a row.
+      misses = plugged ? 0 : misses + 1
+      if (phase === 'ready' && misses >= 2) {
+        setPhase('unplugged')
+      }
+      if (phase === 'unplugged' && plugged) {
+        read(handle)
+      }
     }, POLL_MS)
-    return () => clearInterval(timer)
+    return () => {
+      alive = false
+      clearInterval(timer)
+    }
   }, [handle, phase, scanning, read])
 
   // Durations come in one by one after the scan, the list shows up right away.
@@ -143,10 +182,26 @@ export function useUsbKey() {
     }
   }
 
+  // The remembered stick can point at a place that no longer exists (plugged under another drive
+  // letter, renamed, reformatted): the browser then never shows its prompt and never answers.
+  // After a while Cue offers to pick the stick again; a late "allow" still reads it.
   async function reconnect() {
     if (!handle) return connect()
-    if (await requestPermission(handle)) read(handle)
-    else setError('Access denied. Allow Cue to read the stick to continue.')
+    const asked = handle
+    let answered = false
+    const noAnswer = setTimeout(() => {
+      if (answered) return
+      setPhase('idle')
+      setError(`Cue can’t find ${keyName(asked)} where it was last time. Choose your stick again.`)
+    }, RECONNECT_MS)
+    const allowed = await requestPermission(asked).catch(() => false)
+    answered = true
+    clearTimeout(noAnswer)
+    if (allowed) read(asked)
+    else {
+      setPhase('idle')
+      setError('Cue could not open this stick. Choose it again.')
+    }
   }
 
   const name = handle ? keyName(handle) : ''
@@ -158,6 +213,7 @@ export function useUsbKey() {
     files,
     durations,
     scanning,
+    scanned,
     error,
     // Where the key is on this computer, for rekordbox: worked out from the key itself when
     // possible (always better than a choice saved for an earlier plug-in), else the DJ's pick.
@@ -183,6 +239,7 @@ export function useUsbKey() {
     },
   }
 }
+
 
 // Chrome may name a drive root after its letter ("E:\"): keep it readable.
 function keyName(handle: FileSystemDirectoryHandle) {

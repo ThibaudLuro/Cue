@@ -97,8 +97,9 @@ export function useKeyPrep(key: UsbKey) {
       key: setup?.key ?? rhythm?.key ?? '—',
       sections,
       beat: setup?.beat ?? rhythm?.beat ?? null,
-      // The intro's cue sits on the first downbeat.
-      downbeat: setup?.downbeat ?? (sections[0] && decoded ? sections[0].cue * decoded : null),
+      // From the analysis; older ones lack it: the intro's cue sits on the first downbeat.
+      downbeat:
+        setup?.downbeat ?? rhythm?.downbeat ?? (sections[0] && decoded ? sections[0].cue * decoded : null),
       mood,
       // The level is the energy: corrected or found on the key, it wins over the guess.
       energy: mood ? MOODS.indexOf(mood) + 1 : (guess?.energy ?? 0),

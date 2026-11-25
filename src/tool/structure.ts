@@ -58,16 +58,24 @@ export function detectSections(
   duration: number,
   bpm: number | null,
   beat: number | null,
+  // Found by rhythm.ts on the audio itself, beat by beat; older analyses lack it.
+  downbeat: number | null = null,
 ): Section[] {
   if (!duration || curve.full.length === 0) return []
   const barLength = bpm ? 240 / bpm : FALLBACK_BAR
 
   // Which beat of four is the downbeat: the one on which the music changes the sharpest.
+  // This curve is coarse (a few points per beat): only when the audio did not say.
+  const origins =
+    bpm && downbeat !== null
+      ? [downbeat]
+      : bpm && beat !== null
+        ? [0, 1, 2, 3].map((r) => beat + (r * 60) / bpm)
+        : [0]
   let bars: Bar[] = []
   let changes: number[] = []
   let bestScore = -Infinity
-  for (let r = 0; r < (bpm && beat !== null ? 4 : 1); r++) {
-    const origin = bpm && beat !== null ? beat + (r * 60) / bpm : 0
+  for (const origin of origins) {
     const candidate = barsFrom(curve, duration, origin, barLength)
     const candidateChanges = novelty(candidate)
     const score = topSum(candidateChanges, 6)

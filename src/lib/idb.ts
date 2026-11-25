@@ -12,8 +12,15 @@ function openDb() {
         if (!request.result.objectStoreNames.contains(store)) request.result.createObjectStore(store)
       }
     }
-    request.onsuccess = () => resolve(request.result)
+    request.onsuccess = () => {
+      // A tab with a newer Cue wants to upgrade the database: let it.
+      request.result.onversionchange = () => request.result.close()
+      resolve(request.result)
+    }
     request.onerror = () => reject(request.error)
+    // A tab still running an older Cue holds the database: without this the open would wait until
+    // that tab closes, and the page would hang. Callers treat it like blocked storage.
+    request.onblocked = () => reject(new Error('Database blocked by another tab'))
   })
 }
 

@@ -6,16 +6,16 @@ export const CLAP_RATE = 48000
 const CLIP_SECONDS = 10
 // Away from the intro and the outro, where every track sounds alike.
 const CLIP_AT = [0.3, 0.5, 0.7]
-// Tempo and key need a longer stretch, not the full band: the middle 2 minutes at 12 kHz.
+// Tempo, key and beat grid: the whole track (the grid is fitted on every kick), not the full
+// band: 12 kHz.
 export const RHYTHM_RATE = 12000
-const RHYTHM_SECONDS = 120
 
 export type Excerpts = {
   duration: number
   clips: Float32Array[]
   // Mean level of the excerpts in dBFS: club masters sit around -14 to -7.
   loudness: number
-  // For rhythm.ts, at RHYTHM_RATE.
+  // For rhythm.ts, at RHYTHM_RATE: the whole track.
   signal: Float32Array
   // Where signal starts in the track, in seconds.
   signalOffset: number
@@ -35,16 +35,14 @@ export async function readExcerpts(handle: FileSystemFileHandle): Promise<Excerp
     const clip = samples.slice(start, start + clipLength)
     clips.push(rate === CLAP_RATE ? clip : await resample(clip, rate, CLAP_RATE))
   }
-  const signalLength = Math.min(samples.length, RHYTHM_SECONDS * rate)
-  const signalStart = Math.round((samples.length - signalLength) / 2)
-  const signal = await resample(samples.subarray(signalStart, signalStart + signalLength), rate, RHYTHM_RATE)
+  const signal = await resample(samples, rate, RHYTHM_RATE)
 
   return {
     duration: samples.length / rate,
     clips,
     loudness: loudness(clips),
     signal,
-    signalOffset: signalStart / rate,
+    signalOffset: 0,
     curve: energyCurve(samples, rate),
   }
 }

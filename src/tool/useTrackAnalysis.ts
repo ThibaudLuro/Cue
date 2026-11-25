@@ -14,6 +14,7 @@ import {
   type MoodGuess,
   type MoodVectors,
 } from './moods'
+import { GRID_VERSION } from './rhythm'
 import { detectRhythmOffThread } from './rhythmClient'
 import { detectSections, type Section } from './structure'
 import { fileKey, type KeyFile } from './usbKey'
@@ -29,12 +30,13 @@ async function loadVectors() {
   return moodVectors(embeddings)
 }
 
-// What a track still needs. Older analyses may lack the rhythm, the beat grid or the energy
-// curve: the audio is then read again, without re-running the mood model.
+// What a track still needs. Older analyses may lack the rhythm, the energy curve or have a beat
+// grid from an older detection (GRID_VERSION): the audio is then read again, without re-running
+// the mood model.
 // A file that failed is not retried until it changes on the key (or the mood model does).
 function missing(analysis: Analysis | undefined, withMood: boolean) {
   if (analysis?.unreadable) return { mood: false, signal: false }
-  const signal = !analysis?.rhythm || analysis.rhythm.beat === undefined || !analysis.curve
+  const signal = !analysis?.rhythm || analysis.rhythm.grid !== GRID_VERSION || !analysis.curve
   const mood = withMood && !analysis?.embedding && analysis?.moodFailed !== CLAP_MODEL
   return { mood, signal }
 }
@@ -177,8 +179,8 @@ export function useTrackAnalysis(files: KeyFile[], setups: string[] | null) {
     const found: Record<string, Section[]> = {}
     for (const [path, analysis] of Object.entries(analyses)) {
       if (!analysis.curve) continue
-      const { bpm = null, beat = null } = analysis.rhythm ?? {}
-      found[path] = detectSections(analysis.curve, analysis.duration, bpm, beat ?? null)
+      const { bpm = null, beat = null, downbeat = null } = analysis.rhythm ?? {}
+      found[path] = detectSections(analysis.curve, analysis.duration, bpm, beat ?? null, downbeat ?? null)
     }
     return found
   }, [analyses])
